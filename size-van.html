@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>박스 적재량 비교 시뮬레이터</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            background-color: #f1f5f9; /* Slate 100 */
+        }
+        .container {
+            max-width: 1000px;
+        }
+        input[type="number"], input[type="text"] {
+            transition: all 0.2s;
+        }
+        input[type="number"]:focus, input[type="text"]:focus {
+            border-color: #3b82f6; /* Blue 500 */
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        .scroll-container {
+            overflow-x: auto;
+        }
+        table {
+            min-width: 900px;
+            /* Enhance table design */
+            border-collapse: collapse;
+        }
+        th, td {
+            white-space: nowrap;
+            border: 1px solid #e5e7eb; /* Light gray border */
+        }
+        /* Hide element only on print */
+        .print-hide {
+            display: inherit;
+        }
+        
+        /* Mobile optimization */
+        @media (max-width: 768px) {
+            .input-group, .car-input-group {
+                flex-direction: column;
+                gap: 10px;
+                align-items: stretch;
+            }
+            .input-item input, .car-input-item input {
+                width: 100%;
+            }
+            .car-input-group button {
+                width: 100%;
+                margin-top: 10px;
+            }
+            .scroll-container {
+                margin: 0 -1rem;
+                padding: 0 1rem;
+            }
+        }
+
+        /* --- Print Styles for Clean Output --- */
+        @media print {
+            body {
+                background-color: #ffffff !important;
+                padding: 0;
+                margin: 0;
+            }
+            .container {
+                box-shadow: none !important;
+                padding: 0;
+                margin: 0 auto;
+                width: 100%;
+                max-width: 100%;
+            }
+            /* Hide all interactive/non-data sections, graph, and notice */
+            .print-hide, 
+            .input-group, 
+            .car-input-group, 
+            #chartCanvas, 
+            .bg-blue-50, 
+            .bg-green-50, 
+            .bg-yellow-50, 
+            .shadow-2xl, 
+            .shadow-inner, 
+            .mb-8,
+            h2:nth-of-type(4) /* 그래프 제목 숨김 */
+            {
+                display: none !important;
+            }
+            
+            /* Ensure the main table is the focus */
+            #car_spec_table {
+                min-width: auto;
+                width: 100%;
+                margin: 20px 0;
+                border-collapse: collapse;
+            }
+
+            /* Monochrome and clear table borders for print */
+            th, td {
+                border: 1px solid #444 !important;
+                padding: 8px !important;
+                white-space: normal !important;
+                color: #000 !important;
+            }
+            thead {
+                background-color: #eee !important;
+                -webkit-print-color-adjust: exact; /* For background colors to print */
+                color: #000 !important;
+            }
+
+            /* Hide the '관리' (Delete Button) column */
+            #car_spec_table th:nth-child(7), 
+            #car_spec_table td:nth-child(7) {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="container mx-auto bg-white p-6 md:p-10 rounded-xl shadow-2xl">
+        <div class="flex justify-between items-center mb-6 border-b pb-3">
+            <h1 class="text-3xl font-extrabold text-gray-900">차량 적재 효율 시뮬레이터</h1>
+            <button onclick="window.print()" class="print-hide bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors text-sm">
+                결과 인쇄 (Print)
+            </button>
+        </div>
+        
+        <!-- 박스 크기 입력 -->
+        <h2 class="text-xl font-bold text-gray-700 mb-4 pt-4 print-hide">📦 박스 크기 입력 (mm)</h2>
+        <div class="input-group flex flex-wrap md:flex-nowrap gap-4 mb-8 p-4 bg-blue-50 rounded-lg border border-blue-100 print-hide">
+            <div class="input-item flex flex-col w-full">
+                <label for="box_width" class="font-medium text-gray-600 mb-1">가로 (W)</label>
+                <input type="number" id="box_width" value="480" min="1" onchange="calculateCapacity()" class="p-2 border border-gray-300 rounded-md">
+            </div>
+            <div class="input-item flex flex-col w-full">
+                <label for="box_length" class="font-medium text-gray-600 mb-1">세로 (L)</label>
+                <input type="number" id="box_length" value="380" min="1" onchange="calculateCapacity()" class="p-2 border border-gray-300 rounded-md">
+            </div>
+            <div class="input-item flex flex-col w-full">
+                <label for="box_height" class="font-medium text-gray-600 mb-1">높이 (H)</label>
+                <input type="number" id="box_height" value="340" min="1" onchange="calculateCapacity()" class="p-2 border border-gray-300 rounded-md">
+            </div>
+        </div>
+
+        <!-- 차량 제원 데이터 입력 (분리된 필드) -->
+        <h2 class="text-xl font-bold text-gray-700 mb-4 pt-4 border-t mt-6 print-hide">🚚 새로운 차량 제원 추가 (mm)</h2>
+        <div class="car-input-group flex flex-wrap gap-4 mb-8 p-4 bg-green-50 rounded-lg border border-green-100 print-hide">
+            <div class="car-input-item flex flex-col flex-1 min-w-[150px]">
+                <label for="new_car_name" class="font-medium text-gray-600 mb-1">모델명</label>
+                <input type="text" id="new_car_name" placeholder="예: 특수차량 3호" class="p-2 border border-gray-300 rounded-md">
+            </div>
+            <div class="car-input-item flex flex-col flex-1 min-w-[80px]">
+                <label for="new_car_w" class="font-medium text-gray-600 mb-1">너비 (W)</label>
+                <input type="number" id="new_car_w" placeholder="W" class="p-2 border border-gray-300 rounded-md">
+            </div>
+            <div class="car-input-item flex flex-col flex-1 min-w-[80px]">
+                <label for="new_car_l" class="font-medium text-gray-600 mb-1">길이 (L)</label>
+                <input type="number" id="new_car_l" placeholder="L" class="p-2 border border-gray-300 rounded-md">
+            </div>
+            <div class="car-input-item flex flex-col flex-1 min-w-[80px]">
+                <label for="new_car_h" class="font-medium text-gray-600 mb-1">높이 (H)</label>
+                <input type="number" id="new_car_h" placeholder="H" class="p-2 border border-gray-300 rounded-md">
+            </div>
+            <button onclick="addCarSpec()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg self-end shadow-md transition-colors w-full md:w-auto">
+                차량 추가
+            </button>
+        </div>
+
+        <!-- 임팩트 문구 및 고지 사항 -->
+        <div class="p-4 bg-yellow-50 border-l-4 border-yellow-500 text-yellow-800 rounded-lg shadow-inner mt-4 mb-6 print-hide">
+            <p class="font-bold text-lg mb-1">⚠️ 중요 고지 사항 및 차량 특성</p>
+            <ul class="list-disc list-inside text-sm space-y-1">
+                <li>**AI 휴리스틱 알고리즘**을 통해 적재물 계산을 한 것이므로, 실제 적재 환경이나 방법(예: 비정형 구조)에 따라 적재량이 다를 수 있습니다. 이 결과는 **참고용**으로만 활용해 주십시오.</li>
+                <li>**상승탑 모델**은 상부 부분이 더 넓은 비정형 구조이므로, 표기된 W x L x H 단순 계산 부피보다 **실제 적재 가능 부피가 더 큽니다.** (표에서는 W x L x H 단순 계산 부피를 사용)</li>
+                <li>**부피 차이 (vs 바로 아래 차량)**는 **바로 아래 행의 차량 부피를 기준**으로 현재 차량의 부피가 얼마나 큰지를 %로 나타냅니다.</li>
+            </ul>
+        </div>
+        
+        <!-- 차량 제원 데이터 테이블 -->
+        <h2 class="text-xl font-bold text-gray-700 mb-4 pt-4 border-t mt-6">📊 차량별 적재 시뮬레이션 결과</h2>
+        <div class="scroll-container">
+            <table id="car_spec_table" class="min-w-full divide-y divide-gray-200 shadow-md rounded-lg overflow-hidden">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-left">차량 모델명</th>
+                        <th class="px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">크기 (W x L x H, mm)</th>
+                        <th class="px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">부피 ($m^3$)</th>
+                        <th class="px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">적재율 (%)</th>
+                        <th class="px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">부피 차이 (vs 바로 아래 차량)</th>
+                        <th class="px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">최대 적재 박스 수</th>
+                        <th class="px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider print-hide">관리</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    <!-- 데이터는 JavaScript로 채워집니다 -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 그래프 영역 -->
+        <h2 class="text-xl font-bold text-gray-700 mb-4 pt-8 border-t mt-8 print-hide">📈 적재량 비교 그래프</h2>
+        <div class="flex justify-center p-4 bg-gray-50 rounded-lg shadow-inner print-hide">
+            <canvas id="chartCanvas" width="900" height="400" class="w-full h-auto"></canvas>
+        </div>
+    </div>
+
+<script>
+    // 1. 초기 차량 제원 데이터 (W: 너비, L: 길이, H: 높이, 순서: W x L x H)
+    // 모든 차량은 명시된 제원(W x L x H)을 기준으로 부피를 계산합니다.
+    let carSpecs = [
+        // 너비(W) x 길이(L) x 높이(H) 순서로 구성 (부피가 큰 차량부터 배치하여 보기 쉽도록 함)
+        { name: "축연장 상승탑 슈퍼", spec: "1600 x 3400 x 2200" },
+        { name: "축연장 상승탑 기본", spec: "1600 x 3400 x 1800" },
+        { name: "상승탑 슈퍼", spec: "1645 x 2870 x 2200" },
+        { name: "상승탑 기본", spec: "1645 x 2770 x 1800" },
+        { name: "하이탑차", spec: "1670 x 2830 x 1800" },
+        { name: "일반탑차", spec: "1670 x 2830 x 1580" },
+        { name: "저상탑차", spec: "1670 x 2830 x 1270" }
+    ];
+
+    // 2. 적재량 계산 (휴리스틱 알고리즘 - 6가지 회전 조합 비교)
+    function calculateMaxBoxes(carW, carL, carH, boxW, boxL, boxH) {
+        if (boxW <= 0 || boxL <= 0 || boxH <= 0) return 0;
+        
+        let maxCount = 0;
+
+        // 6가지 모든 회전 조합 (순열)을 고려합니다.
+        const permutations = [
+            [boxW, boxL, boxH], [boxW, boxH, boxL],
+            [boxL, boxW, boxH], [boxL, boxH, boxW],
+            [boxH, boxW, boxL], [boxH, boxL, boxW]
+        ];
+
+        for (const [w, l, h] of permutations) {
+            // 각 축에 몇 개씩 들어가는지 계산 (정수만 허용)
+            const countW = Math.floor(carW / w);
+            const countL = Math.floor(carL / l);
+            const countH = Math.floor(carH / h);
+            
+            // 총 적재 개수
+            const totalCount = countW * countL * countH;
+            
+            // 최대값 갱신
+            if (totalCount > maxCount) {
+                maxCount = totalCount;
+            }
+        }
+        
+        return maxCount;
+    }
+
+    // 3. 차량 제원 테이블 업데이트 및 적재량 계산 핵심 로직
+    function updateCarTable() {
+        const boxW = parseInt(document.getElementById('box_width').value);
+        const boxL = parseInt(document.getElementById('box_length').value);
+        const boxH = parseInt(document.getElementById('box_height').value);
+
+        if (isNaN(boxW) || isNaN(boxL) || isNaN(boxH) || boxW <= 0 || boxL <= 0 || boxH <= 0) {
+            document.getElementById('car_spec_table').getElementsByTagName('tbody')[0].innerHTML = '<tr><td colspan="7" class="text-center py-4 text-red-500">유효한 박스 크기를 입력해주세요.</td></tr>';
+            drawBarChart([]);
+            return;
+        }
+
+        const boxVolume = (boxW * boxL * boxH) / 1000000000; // 박스 부피 (m^3)
+
+        const tbody = document.getElementById('car_spec_table').getElementsByTagName('tbody')[0];
+        tbody.innerHTML = ''; // 기존 내용 초기화
+        
+        
+        // --- Step 1: 모든 차량의 데이터(부피 포함)를 미리 계산 (Original Order) ---
+        const calculatedData = carSpecs.map((car, originalIndex) => { 
+            
+            // STANDARD CUBIC VOLUME CALCULATION (모든 차량에 적용)
+            const parts = car.spec.split('x').map(s => parseInt(s.trim()));
+            // W, L, H 순서
+            const [carW, carL, carH] = parts; 
+            const carVolume = (carW * carL * carH) / 1000000000;
+
+            const maxBoxes = calculateMaxBoxes(carW, carL, carH, boxW, boxL, boxH);
+            const utilizedVolume = maxBoxes * boxVolume;
+            const volumeRatio = carVolume > 0 ? (utilizedVolume / carVolume) * 100 : 0;
+            
+            return {
+                ...car,
+                originalIndex, 
+                carVolume,
+                maxBoxes,
+                volumeRatio,
+                displaySpec: car.spec // 표시용 스펙
+            };
+        });
+
+        const dataForDisplay = calculatedData;
+        let chartData = []; 
+
+        // --- Step 2: 데이터를 원본 순서대로 반복하며 테이블 행 생성 및 부피 차이 계산 ---
+        // 부피 차이 기준: 현재 차량 vs 바로 아래 차량
+        dataForDisplay.forEach((car, index) => {
+
+            let volumeDiffText = 'N/A';
+            let diffColorClass = 'text-gray-500';
+
+            // 다음 차량을 비교 기준으로 잡습니다. (배열 순서대로)
+            const comparisonCar = dataForDisplay[index + 1];
+            
+            if (!comparisonCar) {
+                // 배열의 마지막 차량 (비교 대상 없음)
+                volumeDiffText = '기준 (0.0%)';
+                diffColorClass = 'text-blue-600 font-bold';
+            } else {
+                const baseVolume = comparisonCar.carVolume;
+                
+                if (baseVolume > 0) {
+                    // (현재 차량 부피 - 다음 차량 부피) / 다음 차량 부피 * 100
+                    // 바로 아래 차량의 부피를 기준(분모)으로 계산합니다.
+                    const volumeDiffValue = ((car.carVolume - baseVolume) / baseVolume) * 100;
+                    
+                    volumeDiffText = `${volumeDiffValue.toFixed(1)}%`;
+                    
+                    if (volumeDiffValue > 0) {
+                        volumeDiffText = `+${volumeDiffText}`;
+                        diffColorClass = 'text-green-600 font-bold'; // 다음 차량보다 부피가 크면 초록색
+                    } else if (volumeDiffValue < 0) {
+                        diffColorClass = 'text-red-600'; 
+                    } else {
+                        diffColorClass = 'text-gray-500';
+                    }
+                } else {
+                    volumeDiffText = '비교 기준 부피 0';
+                    diffColorClass = 'text-gray-400 italic';
+                }
+            }
+            
+            // chartData를 dataForDisplay 순서로 채웁니다.
+            chartData.push({
+                name: car.name,
+                count: car.maxBoxes,
+                ratio: car.volumeRatio
+            });
+
+            // 테이블 행 생성 (Tailwind 클래스 적용)
+            const row = tbody.insertRow();
+            row.className = 'hover:bg-gray-100';
+            
+            // 1. 모델명
+            row.insertCell().textContent = car.name;
+            row.cells[0].className = 'px-3 py-3 text-sm font-medium text-gray-900 text-left';
+
+            // 2. 크기 (W x L x H)
+            row.insertCell().textContent = car.displaySpec;
+            row.cells[1].className = 'px-3 py-3 text-sm text-gray-500';
+
+            // 3. 부피 (m^3)
+            row.insertCell().textContent = car.carVolume.toFixed(2);
+            row.cells[2].className = 'px-3 py-3 text-sm text-gray-500';
+
+            // 4. 적재율 (%)
+            row.insertCell().textContent = car.volumeRatio.toFixed(1) + '%';
+            row.cells[3].className = `px-3 py-3 text-sm font-semibold ${car.volumeRatio >= 80 ? 'text-green-600' : 'text-yellow-600'}`;
+            
+            // 5. 부피 차이 (%)
+            const diffCell = row.insertCell();
+            diffCell.textContent = volumeDiffText;
+            diffCell.className = `px-3 py-3 text-sm ${diffColorClass}`;
+
+            // 6. 최대 적재 박스 수
+            row.insertCell().textContent = car.maxBoxes;
+            row.cells[5].className = 'px-3 py-3 text-sm font-bold text-indigo-600';
+            
+            // 7. 관리 (인쇄 시 숨김)
+            const actionCell = row.insertCell();
+            actionCell.className = 'px-3 py-3 text-sm print-hide';
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = '삭제';
+            // car.originalIndex는 carSpecs 배열 내의 인덱스로, 삭제 시 정확한 위치를 찾도록 합니다.
+            deleteButton.onclick = () => deleteCarSpec(car.originalIndex); 
+            deleteButton.className = 'delete-btn bg-red-500 hover:bg-red-600 text-white font-medium py-1 px-3 rounded-md text-xs transition-colors';
+            actionCell.appendChild(deleteButton);
+        });
+
+        // 그래프 그리기 - chartData는 원본 순서(부피 큰 순서)대로 전달됩니다.
+        drawBarChart(chartData);
+    }
+    
+    // 4. 차량 추가 기능 (W, L, H 각각 입력 받음) - 변경 없음
+    function addCarSpec() {
+        const nameInput = document.getElementById('new_car_name');
+        const wInput = document.getElementById('new_car_w');
+        const lInput = document.getElementById('new_car_l');
+        const hInput = document.getElementById('new_car_h');
+        
+        const name = nameInput.value.trim();
+        const w = parseInt(wInput.value);
+        const l = parseInt(lInput.value);
+        const h = parseInt(hInput.value);
+        
+        // 유효성 검사
+        if (name && !isNaN(w) && w > 0 && !isNaN(l) && l > 0 && !isNaN(h) && h > 0) {
+            // W x L x H 형식으로 다시 조합하여 저장
+            const spec = `${w} x ${l} x ${h}`;
+            
+            carSpecs.push({ name: name, spec: spec }); // 배열의 맨 뒤(테이블의 아래)에 추가
+            updateCarTable();
+            
+            // 입력 필드 초기화
+            nameInput.value = '';
+            wInput.value = '';
+            lInput.value = '';
+            hInput.value = '';
+        } else {
+            // 사용자에게 알림 대신 console.error 사용
+            console.error("차량 모델명과 제원(너비, 길이, 높이)을 모두 숫자로 올바르게 입력해주세요.");
+            if (!name) nameInput.focus();
+            else if (isNaN(w) || w <= 0) wInput.focus();
+            else if (isNaN(l) || l <= 0) lInput.focus();
+            else if (isNaN(h) || h <= 0) hInput.focus();
+        }
+    }
+    
+    // 6. 차량 삭제 기능
+    function deleteCarSpec(index) {
+        const carName = carSpecs[index].name;
+        // NOTE: window.confirm() 사용 금지 지침에 따라 확인 절차 없이 즉시 삭제합니다.
+        console.log(`차량 '${carName}'을(를) 확인 절차 없이 삭제합니다.`);
+        carSpecs.splice(index, 1); // 해당 인덱스의 요소 삭제
+        updateCarTable(); // 테이블 및 그래프 새로고침
+    }
+
+    // 7. 캔버스 막대 그래프 그리기 - 변경 없음
+    function drawBarChart(data) {
+        const canvas = document.getElementById('chartCanvas');
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width;
+        const H = canvas.height;
+        ctx.clearRect(0, 0, W, H); // 캔버스 초기화
+
+        const padding = 60;
+        const chartW = W - 2 * padding;
+        const chartH = H - 2 * padding;
+        const barMargin = 20;
+
+        const maxCount = data.length > 0 ? Math.max(...data.map(d => d.count)) : 0;
+        const maxValue = Math.ceil(maxCount / 10) * 10; // Y축 최대값을 10의 배수로 반올림
+        
+        // 데이터 없음 처리
+        if (data.length === 0 || maxCount === 0) {
+             ctx.font = '20px "Inter", sans-serif';
+             ctx.fillStyle = '#666';
+             ctx.textAlign = 'center';
+             ctx.fillText('데이터가 없거나 적재량이 0입니다.', W / 2, H / 2);
+             return;
+        }
+
+        const barW = (chartW / data.length) * 0.6; // 막대 너비
+        const barSpacing = chartW / data.length;
+        const barXStart = padding + (barSpacing - barW) / 2;
+
+        // 축 그리기
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1;
+
+        // Y축 (세로축)
+        ctx.beginPath();
+        ctx.moveTo(padding, padding);
+        ctx.lineTo(padding, H - padding);
+        ctx.stroke();
+
+        // X축 (가로축)
+        ctx.beginPath();
+        ctx.moveTo(padding, H - padding);
+        ctx.lineTo(W - padding, H - padding);
+        ctx.stroke();
+        
+        // Y축 눈금 및 레이블 (4개 눈금)
+        ctx.fillStyle = '#555';
+        ctx.font = '12px "Inter", sans-serif';
+        for (let i = 0; i <= 4; i++) {
+            const yValue = (maxValue / 4) * i;
+            const y = H - padding - (yValue / maxValue) * chartH;
+            
+            // 가로선 (그리드)
+            if (i > 0) { // 0점 제외
+                ctx.beginPath();
+                ctx.strokeStyle = '#e0e0e0';
+                ctx.lineWidth = 1;
+                ctx.moveTo(padding, y);
+                ctx.lineTo(W - padding, y);
+                ctx.stroke();
+            }
+
+            // 눈금 텍스트
+            ctx.fillStyle = '#555';
+            ctx.textAlign = 'right';
+            ctx.fillText(Math.round(yValue), padding - 10, y + 4);
+        }
+        ctx.textAlign = 'center';
+        ctx.font = '14px "Inter", sans-serif';
+        ctx.fillText('최대 적재 박스 수', padding, padding - 30); // Y축 제목
+
+        // 막대 그리기
+        data.forEach((d, i) => {
+            const barH = (d.count / maxValue) * chartH;
+            const x = padding + i * barSpacing + (barSpacing - barW) / 2;
+            const y = H - padding - barH;
+            
+            // 막대 색상: 상위 2개는 인디고 계열, 나머지는 청색 계열 (원본 순서대로 표시됨)
+            const color = (i < 2) ? '#4f46e5' : '#3b82f6'; 
+
+            // 막대
+            ctx.fillStyle = color;
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+            ctx.shadowBlur = 4;
+            ctx.fillRect(x, y, barW, barH);
+            ctx.shadowBlur = 0; // 그림자 초기화
+            
+            // 값 레이블 (막대 상단)
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 14px "Inter", sans-serif';
+            ctx.fillText(d.count, x + barW / 2, y - 8);
+            
+            // X축 레이블 (차량 이름)
+            ctx.fillStyle = '#333';
+            ctx.font = '12px "Inter", sans-serif';
+            // 이름이 너무 길 경우 줄 바꿈 또는 회전 처리 (여기서는 간단히 표시)
+            ctx.fillText(d.name, x + barW / 2, H - padding + 20);
+        });
+    }
+
+    // 초기 실행
+    function calculateCapacity() {
+        updateCarTable();
+    }
+    
+    // 페이지 로드 시 초기 데이터로 한번 실행
+    window.onload = calculateCapacity;
+</script>
+
+</body>
+</html>
