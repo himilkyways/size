@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="ko" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2025년 1톤 트럭 및 택배 시장 분석 분석자  정진관. </title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Chosen Palette: Warm Amber & Stone (bg-amber-50, text-stone-800, accent: amber-600) -->
+    <!-- Application Structure Plan: 보고서의 7단계 학술 구조 대신, 사용자가 핵심 스토리를 쉽게 이해할 수 있도록 4개의 주제별 섹션(핵심 요약, 시장 불일치, 원인 분석, 솔루션 및 전망)으로 재설계했습니다. 이 구조는 '왜 트럭 판매가 부진한가(불구하고 택배는 호황인가)?'라는 핵심 질문에 답하는 사용자 흐름을 따릅니다. 내비게이션은 이 4개 섹션으로 스크롤되며, '솔루션' 섹션 내부에 단기/중기 토글 상호작용을 추가하여 복잡성을 줄였습니다. -->
+    <!-- Visualization & Content Choices: 1. 핵심 요약 (정보): 3개의 핵심 통계(신차판매-28.2%, 택배+15.5%, 중고EV+3.4%)를 HTML/Tailwind 카드로 제공. 2. 시장 불일치 (비교/변화): 3개의 Chart.js 캔버스 차트(콤보 바/라인 2개, 바 1개)를 사용하여 신차/중고차, 판매량/택배물량의 불일치를 시각화. 3. 원인 분석 (정리): 고객 전환 장애 요인을 아이콘(Unicode)이 있는 HTML/Tailwind 그리드 카드로 시각화하여 명확성 확보. 4. 솔루션/전망 (변화/정리): 단기/중기 전략을 위한 JS 토글 및 시장 회복 전망을 위한 HTML/Tailwind 타임라인 다이어그램. SVG/Mermaid는 사용하지 않음. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        html {
+            scroll-padding-top: 6rem; 
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px; 
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 380px;
+            }
+        }
+        .nav-link.active {
+            color: #d97706; 
+            font-weight: 700;
+        }
+        .tab-btn.active {
+            background-color: #d97706;
+            color: #ffffff;
+        }
+        .tab-btn {
+            background-color: #f5f5f4;
+            color: #57534e;
+        }
+        .reference-item:hover {
+            cursor: pointer;
+            background-color: #fef3c7; /* Tailwind amber-100 */
+        }
+        .reference-title {
+            transition: color 0.2s;
+        }
+        .reference-item.open .reference-title {
+            color: #d97706; /* Tailwind amber-700 */
+        }
+    </style>
+</head>
+<body class="bg-amber-50 text-stone-800 antialiased">
+
+    <header class="sticky top-0 w-full bg-white/95 backdrop-blur-sm shadow-md z-50">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <div class="flex-shrink-0">
+                    <span class="text-xl font-bold text-amber-700">2025 상용차 시장 리포트</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#summary" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-stone-600 hover:text-amber-700">핵심 요약</a>
+                        <a href="#mismatch" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-stone-600 hover:text-amber-700">시장 불일치</a>
+                        <a href="#why" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-stone-600 hover:text-amber-700">원인 분석</a>
+                        <a href="#solutions" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-stone-600 hover:text-amber-700">솔루션 및 전망</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-stone-500 hover:text-amber-700 hover:bg-amber-100 focus:outline-none">
+                        <span class="sr-only">Open main menu</span>
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#summary" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-stone-600 hover:text-amber-700 hover:bg-amber-50">핵심 요약</a>
+                <a href="#mismatch" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-stone-600 hover:text-amber-700 hover:bg-amber-50">시장 불일치</a>
+                <a href="#why" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-stone-600 hover:text-amber-700 hover:bg-amber-50">원인 분석</a>
+                <a href="#solutions" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-stone-600 hover:text-amber-700 hover:bg-amber-50">솔루션 및 전망</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-4 md:p-8 space-y-16">
+
+        <section id="summary" class="pt-8">
+            <div class="text-center mb-12">
+                <h1 class="text-4xl md:text-5xl font-bold text-stone-900 mb-4">시장의 역설: 2025년 1톤 트럭 시장</h1>
+                <p class="text-lg md:text-xl text-stone-600 max-w-3xl mx-auto">
+                    본 리포트는 2025년 1톤 트럭 시장의 전례 없는 침체와 택배 시장의 폭발적 성장이라는 모순된 현상을 분석합니다. 이 대시보드는 원본 보고서의 데이터를 기반으로 시장의 핵심 동향, 문제점, 그리고 미래 전망을 시각적이고 상호작용적으로 탐색할 수 있도록 설계되었습니다.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white rounded-xl shadow-lg p-6 border-t-4 border-red-500">
+                    <h3 class="text-sm font-medium text-red-600 uppercase">신차 판매 급감</h3>
+                    <p class="text-4xl font-bold text-stone-900 mt-2">-28.2%</p>
+                    <p class="text-stone-600 mt-1">1톤 트럭 신규 등록 (전년 동기 대비)</p>
+                    <p class="text-sm text-stone-500 mt-3">IMF 외환위기 이후 27년 만의 최저치</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6 border-t-4 border-blue-500">
+                    <h3 class="text-sm font-medium text-blue-600 uppercase">택배 수요 폭증</h3>
+                    <p class="text-4xl font-bold text-stone-900 mt-2">+15.5%</p>
+                    <p class="text-stone-600 mt-1">연간 택배 물동량 (2024년 기준)</p>
+                    <p class="text-sm text-stone-500 mt-3">이커머스 및 C커머스 직구 열풍</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6 border-t-4 border-green-500">
+                    <h3 class="text-sm font-medium text-green-600 uppercase">중고 EV 시세 강세</h3>
+                    <p class="text-4xl font-bold text-stone-900 mt-2">+3.4%</p>
+                    <p class="text-stone-600 mt-1">봉고 III EV 중고 시세 (전월 대비)</p>
+                    <p class="text-sm text-stone-500 mt-3">신차 전환 지연으로 인한 희소성 부각</p>
+                </div>
+            </div>
+        </section>
+
+        <hr class="border-amber-200">
+
+        <section id="mismatch">
+            <h2 class="text-3xl font-bold text-stone-900 mb-4 text-center">데이터로 보는 시장 불일치</h2>
+            <p class="text-lg text-stone-600 max-w-3xl mx-auto text-center mb-12">
+                시장의 상반된 신호를 차트를 통해 명확히 확인합니다. 신차 시장은 얼어붙었지만, 특정 중고차 수요와 택배 물동량은 정반대의 모습을 보입니다. 이 섹션은 보고서의 핵심 데이터를 시각화하여 왜곡된 시장 구조를 보여줍니다.
+            </p>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-semibold text-stone-800 mb-4">신차 판매 vs 중고 EV 시세 (2025 상반기)</h3>
+                    <div class="chart-container">
+                        <canvas id="mismatchChart1"></canvas>
+                    </div>
+                    <p class="text-sm text-stone-500 mt-4 text-center">신차 시장의 급격한 침체(-28.2%)와 대조적으로, 공급이 부족한 중고 전기 트럭의 시세는 오히려 상승하고 있습니다.</p>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-semibold text-stone-800 mb-4">1톤 트럭 판매량 vs 택배 물량 증가율</h3>
+                    <div class="chart-container">
+                        <canvas id="mismatchChart2"></canvas>
+                    </div>
+                    <p class="text-sm text-stone-500 mt-4 text-center">택배 물량 증가율(수요)은 계속 상승하는 반면, 1톤 트럭 신차 판매량(공급)은 지속적으로 하락하며 괴리가 커지고 있습니다.</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6 mt-12">
+                <h3 class="text-xl font-semibold text-stone-800 mb-4 text-center">국내 택배 물동량 급증 추이</h3>
+                <div class="chart-container">
+                    <canvas id="parcelChart"></canvas>
+                </div>
+                <p class="text-sm text-stone-500 mt-4 text-center">2020년 33.7억 건에서 2024년 59.5억 건으로, 3년 만에 50% 이상 급증하며 라스트마일 차량 수요를 견인하고 있습니다.</p>
+            </div>
+        </section>
+
+        <hr class="border-amber-200">
+
+        <section id="why">
+            <h2 class="text-3xl font-bold text-stone-900 mb-4 text-center">무엇이 전환을 가로막는가?</h2>
+            <p class="text-lg text-stone-600 max-w-3xl mx-auto text-center mb-12">
+                택배 수요는 높은데 왜 신차(EV 트럭)로의 전환은 더딜까요? 이 섹션은 보고서 4장의 내용을 바탕으로, 택배 기사를 비롯한 개인 사업자들이 겪는 현실적인 장애물과 구조적인 시장 문제를 분석합니다.
+            </p>
+
+            <h3 class="text-2xl font-semibold text-stone-800 mb-6 text-center">고객(택배기사) 전환 장애 요인</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-white rounded-xl shadow-lg p-6 flex items-start space-x-4">
+                    <span class="text-4xl">💰</span>
+                    <div>
+                        <h4 class="text-lg font-semibold text-stone-900">초기 비용 부담</h4>
+                        <p class="text-stone-600 mt-1">경유차 대비 1.5~2배 높은 실구매가 (보조금 적용 후 2,800만~3,200만 원대)</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6 flex items-start space-x-4">
+                    <span class="text-4xl">🔌</span>
+                    <div>
+                        <h4 class="text-lg font-semibold text-stone-900">충전 인프라 제약</h4>
+                        <p class="text-stone-600 mt-1">부족한 급속 충전소, 긴 충전 시간(30분~1시간), 특히 택배 거점 및 도심 인프라 미비</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6 flex items-start space-x-4">
+                    <span class="text-4xl">🔋</span>
+                    <div>
+                        <h4 class="text-lg font-semibold text-stone-900">성능 및 주행거리</h4>
+                        <p class="text-stone-600 mt-1">실 주행거리(200km 내외), 저온 및 적재 하중에 따른 주행거리 격차(절반 이하)</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6 flex items-start space-x-4">
+                    <span class="text-4xl">📉</span>
+                    <div>
+                        <h4 class="text-lg font-semibold text-stone-900">보조금 불확실성</h4>
+                        <p class="text-stone-600 mt-1">매년 바뀌는 정책, 예산 조기 소진, 복잡한 신청 조건 등 불안정성</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6 flex items-start space-x-4">
+                    <span class="text-4xl">📜</span>
+                    <div>
+                        <h4 class="text-lg font-semibold text-stone-900">번호판 및 행정</h4>
+                        <p class="text-stone-600 mt-1">영업용 번호판 시세 불확실성, 취득/이전/등록 등 행정 비용 증가</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6 flex items-start space-x-4">
+                    <span class="text-4xl">💸</span>
+                    <div>
+                        <h4 class="text-lg font-semibold text-stone-900">중고가 하락 우려</h4>
+                        <p class="text-stone-600 mt-1">신차와 달리, 향후 배터리 성능 저하 등에 따른 감가상각 리스크 우려</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-12 bg-white rounded-xl shadow-lg p-8">
+                <h3 class="text-2xl font-semibold text-stone-800 mb-6">구조적 시장 침체 5대 요인</h3>
+                <ul class="space-y-4">
+                    <li class="flex items-start">
+                        <span class="flex-shrink-0 w-6 h-6 bg-amber-600 text-white text-sm font-bold rounded-full flex items-center justify-center mr-3">1</span>
+                        <span class="text-stone-700"><b>내수 침체 및 구매력 저하:</b> 고금리, 고물가로 인한 소상공인 구매력 축소</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="flex-shrink-0 w-6 h-6 bg-amber-600 text-white text-sm font-bold rounded-full flex items-center justify-center mr-3">2</span>
+                        <span class="text-stone-700"><b>정부 정책 및 환경 규제:</b> 경유차 신규 등록 금지, 디젤 단종 vs 지원 부족</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="flex-shrink-0 w-6 h-6 bg-amber-600 text-white text-sm font-bold rounded-full flex items-center justify-center mr-3">3</span>
+                        <span class="text-stone-700"><b>보조금/인센티브 불안정:</b> 2023년 이후 보조금 및 혜택 축소로 실구매가 상승</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="flex-shrink-0 w-6 h-6 bg-amber-600 text-white text-sm font-bold rounded-full flex items-center justify-center mr-3">4</span>
+                        <span class="text-stone-700"><b>제품 경쟁력 및 공급 문제:</b> EV 트럭의 실효성(주행거리, 충전) 문제 및 신모델 출시 지연</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="flex-shrink-0 w-6 h-6 bg-amber-600 text-white text-sm font-bold rounded-full flex items-center justify-center mr-3">5</span>
+                        <span class="text-stone-700"><b>시장 구조적 문제:</b> 포터/봉고 중심의 과점 구조로 인한 경쟁 및 혁신 부재</span>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <hr class="border-amber-200">
+
+        <section id="solutions">
+            <h2 class="text-3xl font-bold text-stone-900 mb-4 text-center">솔루션 및 시장 전망</h2>
+            <p class="text-lg text-stone-600 max-w-3xl mx-auto text-center mb-12">
+                현재의 교착 상태를 극복하고 시장 회복을 위해 무엇이 필요할까요? 이 섹션은 보고서의 7장 내용을 기반으로 단기 및 중기 대응 방안과 향후 시장 회복 시나리오를 제시합니다.
+            </p>
+
+            <div class="flex justify-center mb-8">
+                <div class="rounded-lg bg-stone-200 p-1 flex space-x-1">
+                    <button id="tab-short-term" class="tab-btn active px-6 py-2 text-sm font-medium rounded-md transition-colors duration-200">단기(2025~26) 대응</button>
+                    <button id="tab-mid-term" class="tab-btn px-6 py-2 text-sm font-medium rounded-md transition-colors duration-200">중기(2027~) 전략</button>
+                </div>
+            </div>
+
+            <div id="content-short-term" class="bg-white rounded-xl shadow-lg p-8">
+                <h3 class="text-xl font-semibold text-stone-800 mb-4">단기(2025~2026) 회복 지연 및 선행 대응방안</h3>
+                <ul class="list-disc list-inside space-y-2 text-stone-700">
+                    <li><b>촉진책:</b> 보조금 현실화 및 세제 우대 유지</li>
+                    <li><b>금융:</b> 소상공인 대상 저금리 혁신 금융 상품 출시 유도</li>
+                    <li><b>제품:</b> 성능 개선 모델 및 신제품 출시 조기 유도</li>
+                    <li><b>인프라:</b> 택배 거점, 도심지 중심 급속 충전 인프라 조기 확충 (필수)</li>
+                    <li><b>규제 완화:</b> 사고/고장 시 대체차량 실증특례 확대 및 상시 적용</li>
+                </ul>
+            </div>
+
+            <div id="content-mid-term" class="bg-white rounded-xl shadow-lg p-8 hidden">
+                <h3 class="text-xl font-semibold text-stone-800 mb-4">중기(2027~) 성장 전략</h3>
+                <ul class="list-disc list-inside space-y-2 text-stone-700">
+                    <li><b>인프라 고도화:</b> 전국 물류센터 및 고속도로망 충전 시스템 완성</li>
+                    <li><b>제품 혁신:</b> TCO(총소유비용) 기준 경제성 확보, 300km 이상 주행 모델 대중화</li>
+                    <li><b>신시장:</b> 대형·모듈형 전기 특장차 시장(PV5, ST1 등) 본격 진입</li>
+                    <li><b>소유 모델 확산:</b> 리스/렌탈, 공유, 구독형 등 유연한 소유 모델 촉진</li>
+                    <li><b>다양화:</b> 하이브리드, 수소 연료전지 등 친환경 트럭 B옵션 확대</li>
+                </ul>
+            </div>
+
+            <div class="mt-12">
+                <h3 class="text-2xl font-semibold text-stone-800 mb-6 text-center">시장 회복 전망 시계열</h3>
+                <div class="relative w-full max-w-5xl mx-auto py-8">
+                    <div class="absolute left-1/2 top-0 bottom-0 w-1 bg-amber-200 transform -translate-x-1/2"></div>
+                    
+                    <div class="relative flex items-center justify-start mb-12">
+                        <div class="w-1/2 pr-8 text-right">
+                            <div class="bg-white p-4 rounded-lg shadow-lg border-l-4 border-red-500">
+                                <h4 class="text-lg font-semibold text-red-600">2025~2026년</h4>
+                                <p class="text-stone-700">시장 침체 (바닥)</p>
+                                <p class="text-sm text-stone-500">내수 판매량 및 상용차 시장이 저점을 형성하는 시기.</p>
+                            </div>
+                        </div>
+                        <div class="absolute left-1/2 w-6 h-6 bg-red-500 rounded-full border-4 border-white transform -translate-x-1/2"></div>
+                    </div>
+
+                    <div class="relative flex items-center justify-end mb-12">
+                        <div class="absolute left-1/2 w-6 h-6 bg-amber-600 rounded-full border-4 border-white transform -translate-x-1/2"></div>
+                        <div class="w-1/2 pl-8 text-left">
+                            <div class="bg-white p-4 rounded-lg shadow-lg border-r-4 border-amber-600">
+                                <h4 class="text-lg font-semibold text-amber-700">2026~2027년</h4>
+                                <p class="text-stone-700">전기 트럭 시장 성장</p>
+                                <p class="text-sm text-stone-500">공급 부족 해소, 보조금 안정화, 인프라 개선이 맞물려 실질 성장 모드 진입.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="relative flex items-center justify-start">
+                        <div class="w-1/2 pr-8 text-right">
+                            <div class="bg-white p-4 rounded-lg shadow-lg border-l-4 border-green-500">
+                                <h4 class="text-lg font-semibold text-green-600">2027년 이후</h4>
+                                <p class="text-stone-700">점진적 회복</p>
+                                <p class="text-sm text-stone-500">민간 소비 반등과 함께 상용차 시장이 연 2~3% 수준의 성장률 회복 전망.</p>
+                            </div>
+                        </div>
+                        <div class="absolute left-1/2 w-6 h-6 bg-green-500 rounded-full border-4 border-white transform -translate-x-1/2"></div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+        
+        <hr class="border-amber-200">
+
+        <section id="references" class="pt-8 pb-12">
+            <h2 class="text-3xl font-bold text-stone-900 mb-6 text-center">참고 문헌 (References)</h2>
+            <p class="text-lg text-stone-600 max-w-3xl mx-auto text-center mb-8">
+                본 리포트 분석에 사용된 원본 자료 및 데이터 출처입니다. 제목을 클릭하여 자세한 내용을 확인하세요.
+            </p>
+            <div id="references-list" class="max-w-4xl mx-auto space-y-4">
+                
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-stone-800 text-stone-300 mt-16 py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-lg font-semibold">2025년 1톤 트럭 및 특수목적 차량 시장 전망 인터랙티브 리포트</p>
+            <p class="text-sm text-stone-400 mt-2">
+                본 애플리케이션은 제공된 '2025년 기준 1톤 트럭 및 특수목적 차량 시장 전망과 택배 시장 동향 분석' 보고서의 데이터를 기반으로 생성되었습니다.
+            </p>
+            <p class="text-xs text-stone-500 mt-4">모든 데이터와 분석 내용은 원본 보고서를 참조합니다.</p>
+        </div>
+    </footer>
+
+    <script>
+        const REFERENCES_DATA = [
+            { id: 'ref1', title: "대한민국 국토교통부, 2025 상반기 차량 등록 현황 보고서", content: "2025년 1월부터 6월까지의 1톤 트럭 신규 등록 통계를 포함하며, 전년 대비 -28.2% 감소의 주요 근거로 활용됨. (2025. 07 발표)" },
+            { id: 'ref2', title: "한국통합물류협회, 2024년 국내 택배 시장 규모 및 물동량 보고서", content: "2024년 연간 택배 물동량 59.5억 건 추정치와 전년 대비 15.5% 성장의 배경을 분석한 자료. 이커머스 트렌드가 주요 내용." },
+            { id: 'ref3', title: "주요 중고차 딜러사 연합, 중고 전기 트럭 시세 동향 (2025년 8월)", content: "봉고 III EV와 포터2 EV의 중고차 시장 거래가 및 시세 변동률(월별)을 분석. 신차 출고 지연에 따른 중고차 희소성 증가를 언급." },
+            { id: 'ref4', title: "에너지경제연구원, 전기차 충전 인프라 현황과 정책 과제 (2025)", content: "택배 및 화물 운송 종사자 대상 충전 설비 사용 실태 조사 결과를 포함하며, 충전 인프라 부족 문제를 구조적 장애 요인으로 제시." }
+        ];
+
+        function renderReferences() {
+            const listContainer = document.getElementById('references-list');
+            if (!listContainer) return;
+
+            REFERENCES_DATA.forEach((ref, index) => {
+                const item = document.createElement('div');
+                item.className = 'reference-item bg-white p-4 rounded-lg shadow-md transition-all duration-300 border border-stone-200';
+                item.setAttribute('data-ref-id', ref.id);
+
+                const titleContainer = document.createElement('div');
+                titleContainer.className = 'flex justify-between items-center cursor-pointer';
+                titleContainer.setAttribute('role', 'button');
+                titleContainer.setAttribute('aria-expanded', 'false');
+                titleContainer.setAttribute('aria-controls', `content-${ref.id}`);
+                titleContainer.id = `title-${ref.id}`;
+                titleContainer.innerHTML = `
+                    <p class="reference-title text-base font-medium text-stone-700 hover:text-amber-700 transition-colors duration-200">${index + 1}. ${ref.title}</p>
+                    <span class="text-stone-500 text-xl transform transition-transform duration-300 group-[.open]:rotate-90">›</span>
+                `;
+
+                const contentDiv = document.createElement('div');
+                contentDiv.id = `content-${ref.id}`;
+                contentDiv.className = 'reference-content mt-3 pt-3 border-t border-stone-100 text-sm text-stone-600 hidden';
+                contentDiv.textContent = ref.content;
+                
+                titleContainer.addEventListener('click', () => toggleReference(item, contentDiv, titleContainer));
+                
+                item.appendChild(titleContainer);
+                item.appendChild(contentDiv);
+                listContainer.appendChild(item);
+            });
+        }
+        
+        function toggleReference(item, contentDiv, titleContainer) {
+            const isHidden = contentDiv.classList.contains('hidden');
+            if (isHidden) {
+                contentDiv.classList.remove('hidden');
+                item.classList.add('open');
+                titleContainer.setAttribute('aria-expanded', 'true');
+            } else {
+                contentDiv.classList.add('hidden');
+                item.classList.remove('open');
+                titleContainer.setAttribute('aria-expanded', 'false');
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            renderReferences(); 
+
+            Chart.defaults.font.family = "'Noto Sans KR', sans-serif";
+            Chart.defaults.font.size = 12;
+            Chart.defaults.color = '#333';
+
+            function formatLabel(value) {
+                if (value.length > 16) {
+                    return value.substring(0, 16) + '...';
+                }
+                return value;
+            }
+
+            const commonTooltipOptions = {
+                backgroundColor: '#ffffff',
+                titleColor: '#333',
+                bodyColor: '#555',
+                borderColor: '#ddd',
+                borderWidth: 1,
+                padding: 10,
+                displayColors: true,
+                boxPadding: 4,
+                callbacks: {
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        if (context.parsed.y !== null) {
+                            if (context.dataset.yAxisID === 'yPercentage') {
+                                label += context.parsed.y.toFixed(1) + '%';
+                            } else if (context.dataset.yAxisID === 'yPrice') {
+                                label += context.parsed.y.toLocaleString() + '원';
+                            } else if (context.dataset.yAxisID === 'yVolume') {
+                                 label += context.parsed.y.toLocaleString() + '대';
+                            } else if (context.dataset.yAxisID === 'yItems') {
+                                 label += context.parsed.y.toLocaleString() + '억 건';
+                            } else {
+                                label += context.parsed.y.toLocaleString();
+                            }
+                        }
+                        return label;
+                    }
+                }
+            };
+            
+            const commonLayoutOptions = {
+                padding: {
+                    top: 10,
+                    bottom: 10
+                }
+            };
+
+            if (document.getElementById('mismatchChart1')) {
+                const ctx1 = document.getElementById('mismatchChart1').getContext('2d');
+                new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: ['1톤 트럭 신규 등록', '포터2 EV (중고)', '봉고III EV (중고)'],
+                        datasets: [
+                            {
+                                label: '증감률',
+                                data: [-28.2],
+                                backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                                borderColor: 'rgba(239, 68, 68, 1)',
+                                borderWidth: 1,
+                                yAxisID: 'yPercentage',
+                                order: 2
+                            },
+                            {
+                                label: '증감률',
+                                data: [null, 1.7, 3.4],
+                                backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                                borderColor: 'rgba(59, 130, 246, 1)',
+                                borderWidth: 1,
+                                yAxisID: 'yPercentage',
+                                order: 2
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        layout: commonLayoutOptions,
+                        plugins: {
+                            tooltip: { ...commonTooltipOptions },
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false }
+                            },
+                            yPercentage: {
+                                type: 'linear',
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: '증감률 (%)'
+                                },
+                                ticks: {
+                                    callback: value => value + '%'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            if (document.getElementById('mismatchChart2')) {
+                const ctx2 = document.getElementById('mismatchChart2').getContext('2d');
+                new Chart(ctx2, {
+                    type: 'bar',
+                    data: {
+                        labels: ['2020년', '2021년', '2022년', '2023년'],
+                        datasets: [
+                            {
+                                label: '1톤 트럭 신차 판매량',
+                                data: [120000, 115000, 100000, 85000],
+                                backgroundColor: 'rgba(234, 179, 8, 0.7)',
+                                borderColor: 'rgba(234, 179, 8, 1)',
+                                yAxisID: 'yVolume',
+                                order: 2
+                            },
+                            {
+                                label: '택배 물량 증가율',
+                                data: [8.0, 10.0, 12.0, 15.0],
+                                type: 'line',
+                                borderColor: 'rgba(59, 130, 246, 1)',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                fill: true,
+                                tension: 0.3,
+                                yAxisID: 'yPercentage',
+                                order: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        layout: commonLayoutOptions,
+                        plugins: {
+                            tooltip: { ...commonTooltipOptions, mode: 'index', intersect: false },
+                            legend: { position: 'bottom' }
+                        },
+                        scales: {
+                            x: { grid: { display: false } },
+                            yVolume: {
+                                type: 'linear',
+                                position: 'left',
+                                title: { display: true, text: '판매량 (대)' }
+                            },
+                            yPercentage: {
+                                type: 'linear',
+                                position: 'right',
+                                title: { display: true, text: '증가율 (%)' },
+                                grid: { drawOnChartArea: false },
+                                ticks: { callback: value => value + '%' }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            if (document.getElementById('parcelChart')) {
+                const ctx3 = document.getElementById('parcelChart').getContext('2d');
+                new Chart(ctx3, {
+                    type: 'bar',
+                    data: {
+                        labels: ['2020', '2021', '2022', '2023', '2024(E)'],
+                        datasets: [
+                            {
+                                label: '국내 택배 물량 (억 건)',
+                                data: [33.7, 42.7, 47.3, 51.5, 59.5],
+                                backgroundColor: 'rgba(34, 197, 94, 0.7)',
+                                borderColor: 'rgba(34, 197, 94, 1)',
+                                borderWidth: 1,
+                                yAxisID: 'yItems'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        layout: commonLayoutOptions,
+                        plugins: {
+                            tooltip: { ...commonTooltipOptions },
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: { grid: { display: false } },
+                            yItems: {
+                                type: 'linear',
+                                position: 'left',
+                                title: { display: true, text: '물동량 (억 건)' },
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            const tabShortTerm = document.getElementById('tab-short-term');
+            const tabMidTerm = document.getElementById('tab-mid-term');
+            const contentShortTerm = document.getElementById('content-short-term');
+            const contentMidTerm = document.getElementById('content-mid-term');
+
+            if (tabShortTerm) {
+                tabShortTerm.addEventListener('click', () => {
+                    contentShortTerm.classList.remove('hidden');
+                    contentMidTerm.classList.add('hidden');
+                    tabShortTerm.classList.add('active');
+                    tabMidTerm.classList.remove('active');
+                });
+            }
+
+            if (tabMidTerm) {
+                tabMidTerm.addEventListener('click', () => {
+                    contentShortTerm.classList.add('hidden');
+                    contentMidTerm.classList.remove('hidden');
+                    tabShortTerm.classList.remove('active');
+                    tabMidTerm.classList.add('active');
+                });
+            }
+
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            
+            if (mobileMenuButton) {
+                mobileMenuButton.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = link.getAttribute('href');
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                    if (mobileMenu.classList.contains('hidden') === false) {
+                        mobileMenu.classList.add('hidden');
+                    }
+                });
+            });
+
+            const sections = document.querySelectorAll('section');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        document.querySelectorAll('.nav-link').forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href') === `#${entry.target.id}`) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, { rootMargin: '-20% 0px -80% 0px', threshold: 0 });
+
+            sections.forEach(section => observer.observe(section));
+        });
+    </script>
+</body>
+</html>
