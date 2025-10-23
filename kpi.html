@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>매치업 가격 및 리스크 분석 대시보드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
+            background-color: #f9fafb; 
+            color: #1f2937; 
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        .tab-active {
+            border-bottom-color: #3b82f6; 
+            color: #3b82f6; 
+            font-weight: 600;
+        }
+        .content-panel {
+            display: none;
+        }
+        .content-panel.active {
+            display: block;
+        }
+        .stat-card {
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        .nav-link {
+            cursor: pointer;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            transition: background-color 0.2s;
+        }
+        .nav-link:hover {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <header class="sticky top-0 z-50 w-full bg-white shadow-sm">
+        <nav class="container mx-auto flex items-center justify-between p-4">
+            <h1 class="text-xl font-bold text-blue-600">매치업 리스크 분석</h1>
+            <div class="flex space-x-2 text-sm font-medium text-gray-700">
+                <a class="nav-link" data-target="dashboard">대시보드</a>
+                <a class="nav-link" data-target="analysis">가격 분석</a>
+                <a class="nav-link" data-target="risks">핵심 리스크</a>
+                <a class="nav-link" data-target="roadmap">로드맵</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+
+        <!-- Section 1: Dashboard -->
+        <section id="dashboard" class="mb-12">
+            <h2 class="text-3xl font-bold mb-6">핵심 요약 대시보드</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <div class="stat-card md:col-span-2 p-6">
+                    <h3 class="text-sm font-medium text-gray-500 uppercase">가격 격차 (당사 vs 택탑)</h3>
+                    <div class="flex items-baseline mt-2">
+                        <span class="text-5xl font-bold text-red-600">+870,000원</span>
+                        <span class="ml-2 text-lg text-red-500">(당사 총비용 우위 약화)</span>
+                    </div>
+                    <div class="mt-4 text-base space-y-1">
+                        <p><strong>당사 총비용:</strong> 9,550,000원 (모든 항목 포함)</p>
+                        <p><strong>택탑 실구매가:</strong> 8,680,000원 (필수 옵션 포함)</p>
+                    </div>
+                </div>
+
+                <div class="stat-card p-6 bg-red-50 border border-red-200">
+                    <h3 class="text-sm font-medium text-red-700 uppercase">최우선 리스크</h3>
+                    <p class="text-2xl font-bold text-red-900 mt-3">생산·납기 불안정</p>
+                    <p class="mt-2 text-red-800">고객 신뢰도를 직접 훼손하여 모든 가격/서비스 전략을 무력화시킴.</p>
+                    <a class="nav-link text-sm text-blue-600 font-medium mt-4 inline-block p-0" data-target="risks">→ 리스크 대응 방안 보기</a>
+                </div>
+                
+                <div class="stat-card p-6 col-span-1 md:col-span-3">
+                    <h3 class="text-sm font-medium text-gray-500 uppercase">최우선 권고 사항 (3가지)</h3>
+                    <ol class="mt-4 list-decimal list-inside space-y-2 text-base">
+                        <li>**생산·자재 문제 즉시 해결:** 자재 전수조사, 대체 공급선, 안전재고 확보로 납기 신뢰 회복.</li>
+                        <li>**법무·세무 리스크 동시 봉합:** 변리사·세무사 긴급 의뢰로 특허 및 청구 주체 문제 해결.</li>
+                        <li>**영업 지원 체계 긴급 구축:** 인센티브 시나리오 확정 및 타사 수준 지원으로 영업력 유지.</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Price Analysis (Chart and Analysis Panels - Content unchanged) -->
+        <section id="analysis" class="mb-12">
+            <h2 class="text-3xl font-bold mb-4">가격 및 경쟁 분석</h2>
+            <p class="text-lg text-gray-600 mb-6">
+                당사 제품은 모든 비용을 포함한 '총비용 투명성'을 강점으로 가지나, 경쟁사 '택탑' 대비 표면 및 총비용이 높은 상황입니다. 이 섹션에서는 가격 구조를 시각화하고 경쟁 환경을 분석합니다.
+            </p>
+
+            <div class="stat-card mb-8">
+                <div class="chart-container">
+                    <canvas id="priceMatchupChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="stat-card">
+                    <h3 class="text-xl font-semibold mb-4">당사 (택배클럽) 장단점</h3>
+                    <div class="mb-4">
+                        <h4 class="font-bold text-green-600">강점 (Strengths)</h4>
+                        <ul class="list-disc list-inside mt-2 space-y-1 text-sm">
+                            <li>총비용 투명성 (발판·차바닥·탁송 포함)</li>
+                            <li>담양 생산으로 원가·품질 관리 가능성</li>
+                            <li>하남 제휴를 통한 수도권 A/S 대응 계획</li>
+                            <li>프로모션 및 리베이트 운용 여지</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-red-600">약점 (Weaknesses)</h4>
+                        <ul class="list-disc list-inside mt-2 space-y-1 text-sm">
+                            <li>높은 표면 가격 (920만원)으로 인한 가격 저항</li>
+                            <li>슬라이딩 도어 등 옵션 단가 불리</li>
+                            <li>법인·세무 혼재 (스마트탑 vs 택배클럽)</li>
+                            <li>생산·납기 불안정 (신뢰도 저하)</li>
+                            <li>**영업 직원 지원 전무** (경쟁사 대비 낮은 인센티브/지원)</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <h3 class="text-xl font-semibold mb-4">경쟁사 (택탑) 장단점</h3>
+                    <div class="mb-4">
+                        <h4 class="font-bold text-green-600">강점 (Strengths)</h4>
+                        <ul class="list-disc list-inside mt-2 space-y-1 text-sm">
+                            <li>수동옵션 보유 및 공격적 이벤트 가격</li>
+                            <li>수도권 근접 인식 (심리적 유리함)</li>
+                            <li>공세적 프로모션 운영 능력</li>
+                            <li>**영업 직원 지원 체계 구축** (차량, 통신비, 법인카드 등)</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-red-600">약점 (Weaknesses)</h4>
+                        <ul class="list-disc list-inside mt-2 space-y-1 text-sm">
+                            <li>옵션 표기 방식으로 인한 가격 불투명성</li>
+                            <li>잦은 할인으로 인한 브랜드 저가화 위험</li>
+                            <li>'출원중' 특허로 인한 법적 불확실성</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Risks & Actions -->
+        <section id="risks" class="mb-12">
+            <h2 class="text-3xl font-bold mb-4">핵심 리스크 및 대응 방안</h2>
+            <p class="text-lg text-gray-600 mb-6">
+                현재 당면한 6가지 주요 리스크와 이를 해결하기 위한 구체적인 대응 방안입니다. 탭을 클릭하여 각 항목을 확인하세요.
+            </p>
+            
+            <div class="border-b border-gray-300 mb-6">
+                <nav class="flex flex-wrap -mb-px" id="tab-buttons">
+                    <button class="tab-button py-3 px-4 border-b-2 border-transparent text-gray-600 hover:text-gray-800 text-sm md:text-base tab-active" data-tab="risk-a">A. 생산·납기</button>
+                    <button class="tab-button py-3 px-4 border-b-2 border-transparent text-gray-600 hover:text-gray-800 text-sm md:text-base" data-tab="risk-b">B. 법인·세무</button>
+                    <button class="tab-button py-3 px-4 border-b-2 border-transparent text-gray-600 hover:text-gray-800 text-sm md:text-base" data-tab="risk-c">C. 특허·기술</button>
+                    <button class="tab-button py-3 px-4 border-b-2 border-transparent text-gray-600 hover:text-gray-800 text-sm md:text-base" data-tab="risk-d">D. 영업·통제</button>
+                    <button class="tab-button py-3 px-4 border-b-2 border-transparent text-gray-600 hover:text-gray-800 text-sm md:text-base" data-tab="risk-e">E. 운영·물류</button>
+                    <button class="tab-button py-3 px-4 border-b-2 border-transparent text-gray-600 hover:text-gray-800 text-sm md:text-base" data-tab="risk-f">F. 영업 인센티브</button>
+                </nav>
+            </div>
+
+            <div id="tab-content" class="stat-card p-6">
+                <div id="risk-a" class="content-panel active">
+                    <h3 class="text-2xl font-bold text-red-700 mb-3">A. 생산·납기 리스크 (우선순위 최상)</h3>
+                    <p class="text-base text-gray-700 mb-4"><strong>영향:</strong> 약속 납기 미준수로 인한 계약 취소, 클레임, CS 저하, 재구매율 감소. 모든 마케팅/영업 활동의 신뢰도를 무력화시킵니다.</p>
+                    <h4 class="font-semibold text-gray-900 mb-2">구체 대응 방안:</h4>
+                    <ul class="list-disc list-inside space-y-1 text-sm">
+                        <li>즉시 자재·재고 전수조사 (리드타임, PO 상태 파악)</li>
+                        <li>핵심 부품 2차 공급사(대체 공급선) 긴급 확보</li>
+                        <li>생산계획과 고객 납기 약속 실시간 연동 (ERP/시트 기반)</li>
+                        <li>지연 고객 보상 프로그램 가동 (우선 설치권, 무상 점검 등)</li>
+                        <li>핵심 부품 3~6대분 안전재고 설정 및 유지</li>
+                    </ul>
+                </div>
+                <div id="risk-b" class="content-panel">
+                    <h3 class="text-2xl font-bold text-orange-700 mb-3">B. 법인·세무·회계 리스크</h3>
+                    <p class="text-base text-gray-700 mb-4"><strong>영향:</strong> '한국스마트탑'과 '택배클럽' 명의 혼재로 인한 계약/결제 지연, 세무 이슈(추징 위험), 고객 혼란 및 신뢰 저하.</p>
+                    <h4 class="font-semibold text-gray-900 mb-2">구체 대응 방안:</h4>
+                    <ul class="list-disc list-inside space-y-1 text-sm">
+                        <li>48-72시간 내 '한국스마트탑' 명의 상담/계약/청구 현황 전수 목록화</li>
+                        <li>**즉시 통제:** 신규 계약 및 계산서는 '택배클럽' 명의로만 진행</li>
+                        <li>외부 세무·법률 긴급 컨설팅 의뢰 (정정계산서, 가산세 리스크 산정)</li>
+                        <li>구조적 결정: 스마트탑 법인 정상화 또는 택배클럽으로 영구 이전</li>
+                    </ul>
+                </div>
+                <div id="risk-c" class="content-panel">
+                    <h3 class="text-2xl font-bold text-yellow-700 mb-3">C. 특허·기술 리스크</h3>
+                    <p class="text-base text-gray-700 mb-4"><strong>영향:</strong> 경쟁사(택탑)의 '상승·하강' 관련 출원중 특허로 인해, 향후 침해 주장 시 소송, 영업 중지, 손해배상 리스크 발생 가능.</p>
+                    <h4 class="font-semibold text-gray-900 mb-2">구체 대응 방안:</h4>
+                    <ul class="list-disc list-inside space-y-1 text-sm">
+                        <li>변리사 예비의견 의뢰 (택탑 공개문서 기반 침해 가능성 평가)</li>
+                        <li>택탑 제품 1대 분해 및 기술 비교 분석</li>
+                        <li>회피설계 (2안) 도출 및 비용/기간 평가</li>
+                        <li>라이선스 협상 전략 병행 수립</li>
+                    </ul>
+                </div>
+                <div id="risk-d" class="content-panel">
+                    <h3 class="text-2xl font-bold text-blue-700 mb-3">D. 영업·마케팅·내부통제 리스크</h3>
+                    <p class="text-base text-gray-700 mb-4"><strong>영향:</strong> '전단·옵션자료 배포 금지' 등 내부 통제가 모호하여 시장 확장 기회를 소실하고, 전략 판단을 위한 데이터 확보가 약화됩니다.</p>
+                    <h4 class="font-semibold text-gray-900 mb-2">구체 대응 방안:</h4>
+                    <ul class="list-disc list-inside space-y-1 text-sm">
+                        <li>정책 문서화 (배포 금지 목적, 기간, 예외 규정 명시)</li>
+                        <li>예외 승인 프로세스 도입 (법무 확인 포함 템플릿)</li>
+                        <li>파일럿 기반 타깃 마케팅 허용 (예: 하남권 우선)</li>
+                        <li>리드 복구 캠페인 (스마트탑 명의 상담 리드 재접촉)</li>
+                    </ul>
+                </div>
+                <div id="risk-e" class="content-panel">
+                    <h3 class="text-2xl font-bold text-gray-700 mb-3">E. 운영·물류 리스크</h3>
+                    <p class="text-base text-gray-700 mb-4"><strong>영향:</strong> 운송 중 손상, 하남 입고 시 검수 미비 등으로 인한 초기 불량 및 고객 클레임 발생.</p>
+                    <h4 class="font-semibold text-gray-900 mb-2">구체 대응 방안:</h4>
+                    <ul class="list-disc list-inside space-y-1 text-sm">
+                        <li>운송사 지정 및 적재물 보험 적용 의무화</li>
+                        <li>하남 입고검수 강화 (사진 기록, 시리얼 대조, 체크리스트)</li>
+                        <li>예비부품 하남 안전재고 배치 (3대분 권장)</li>
+                    </ul>
+                </div>
+                <!-- Updated Risk F Content Panel: Removed LaTeX-style formatting ($\text{SOP}$) -->
+                <div id="risk-f" class="content-panel">
+                    <h3 class="text-2xl font-bold text-indigo-700 mb-3">F. 영업 인센티브 및 지원 체계 분석</h3>
+                    <p class="text-base text-gray-700 mb-4">
+                        **리스크:** 경쟁사 대비 영업 직원 지원 전무 (차량, 통신비, 법인카드 등) → 핵심 인력 이탈 및 영업 동기 부여 약화 우려.
+                    </p>
+                    
+                    <h4 class="font-bold text-gray-900 mb-2">1. 영업 비용 구성 시나리오 (급여 조건에 따른 배분)</h4>
+                    <div class="space-y-3 mt-2 text-sm bg-indigo-50 p-4 rounded-lg">
+                        <div class="flex justify-between font-medium text-indigo-800 border-b border-indigo-200 pb-1">
+                            <span>구분</span>
+                            <span>급여 미조건 시</span>
+                            <span>급여 조건 시</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>리베이트 (인센티브)</span>
+                            <span class="font-semibold">50%</span>
+                            <span class="font-semibold">25%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>퍼포먼스 마케팅</span>
+                            <span class="font-semibold">30%</span>
+                            <span class="font-semibold">50%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>콘텐츠 제작 및 기타</span>
+                            <span class="font-semibold">10%</span>
+                            <span class="font-semibold">25%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>프로모션 풀</span>
+                            <span class="font-semibold">10%</span>
+                            <span class="font-semibold">-</span>
+                        </div>
+                    </div>
+
+                    <h4 class="font-bold text-gray-900 mt-4 mb-2">2. 검토 제안 및 대응 방안 (긴급)</h4>
+                    <ul class="list-disc list-inside space-y-1 text-sm">
+                        <li>**긴급 지원:** 경쟁사 수준 (차량, 통신비, 법인카드) 지원 방안 최우선 검토 및 예산 확보.</li>
+                        <!-- SOP 텍스트 수정 -->
+                        <li>**정책 확정:** 급여 조건에 따른 시나리오 중 택일하여 명확한 SOP 수립 및 즉시 공지.</li>
+                        <!-- SLA 텍스트 수정 -->
+                        <li>**가치형 판매 우대:** 인센티브 지급 조건을 단순 할인 제한 및 SLA 등 가치형 판매 우대로 전환.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Section 4: Roadmap & KPIs (Content restored) -->
+        <section id="roadmap" class="mb-12">
+            <h2 class="text-3xl font-bold mb-4">실행 로드맵 및 KPI</h2>
+            <p class="text-lg text-gray-600 mb-6">
+                최우선 리스크를 해결하고 가격 경쟁력을 확보하기 위한 8주간의 실행 로드맵과 핵심 성과 지표입니다.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="stat-card p-6">
+                    <h3 class="text-xl font-semibold mb-4">우선 8주 실행 로드맵</h3>
+                    <ol class="relative border-l border-gray-300 ml-3">                  
+                        <li class="mb-8 ml-6">            
+                            <span class="absolute flex items-center justify-center w-6 h-6 bg-blue-600 rounded-full -left-3 ring-8 ring-white">
+                                <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1h-3V1a1 1 0 0 0-2 0v1H6V1a1 1 0 0 0-2 0v1H2a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V4Zm-2 14H2V7h16v11Z"></path></svg>
+                            </span>
+                            <h4 class="font-semibold text-gray-900">1-2 주차 (즉시 실행)</h4>
+                            <ul class="mt-2 list-disc list-inside text-sm text-gray-700 space-y-1">
+                                <li>**생산 리스크 A 즉시 봉합:** 자재 전수조사 및 핵심 부품 대체 공급선 긴급 확보 (생산팀)</li>
+                                <li>**법인 리스크 B 해결 착수:** 세무사/변리사 긴급 의뢰 및 청구 명의 '택배클럽'으로 통일 (재무/법무)</li>
+                                <li>**영업 직원 지원 방안 긴급 검토 착수 (HR/재무)**</li>
+                            </ul>
+                        </li>
+                        <li class="mb-8 ml-6">
+                            <span class="absolute flex items-center justify-center w-6 h-6 bg-blue-600 rounded-full -left-3 ring-8 ring-white">
+                                <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1h-3V1a1 1 0 0 0-2 0v1H6V1a1 1 0 0 0-2 0v1H2a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V4Zm-2 14H2V7h16v11Z"></path></svg>
+                            </span>
+                            <h4 class="font-semibold text-gray-900">3-4 주차 (안정화)</h4>
+                            <ul class="mt-2 list-disc list-inside text-sm text-gray-700 space-y-1">
+                                <li>**납기 신뢰 회복:** 핵심 부품 안전재고 확보 및 지연 고객 보상 프로그램 시행 (생산/CS)</li>
+                                <li>**특허 리스크 C 검토:** 경쟁사 특허 침해 가능성 1차 의견 확보 및 회피 설계 옵션 도출 (기술/법무)</li>
+                                <li>**인센티브 배분 시나리오 최종 확정 및 공지 (HR/영업)**</li>
+                            </ul>
+                        </li>
+                        <li class="ml-6">
+                            <span class="absolute flex items-center justify-center w-6 h-6 bg-blue-600 rounded-full -left-3 ring-8 ring-white">
+                                <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M20 4a2 2 0 0 0-2-2h-2V1a1 1 0 0 0-2 0v1h-3V1a1 1 0 0 0-2 0v1H6V1a1 1 0 0 0-2 0v1H2a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V4Zm-2 14H2V7h16v11Z"></path></svg>
+                            </span>
+                            <h4 class="font-semibold text-gray-900">5-8 주차 (확산 및 최적화)</h4>
+                            <ul class="mt-2 list-disc list-inside text-sm text-gray-700 space-y-1">
+                                <li>**영업·마케팅 통제 D 재정립:** 정책 문서화 및 타깃 마케팅 파일럿 시행 (영업/마케팅)</li>
+                                <li>**운영 리스크 E 개선:** 하남 입고 검수 및 예비 부품 재고 시스템 공식 적용 (운영/물류)</li>
+                                <li>**인센티브 및 지원 정책 공식 시행 (HR/영업)**</li>
+                            </ul>
+                        </li>
+                    </ol>
+                </div>
+                <div class="stat-card p-6">
+                    <h3 class="text-xl font-semibold mb-4">핵심 성과 지표 (KPI)</h3>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        
+                        <!-- 생산/납기 KPI (리스크 A) -->
+                        <div class="p-4 bg-red-100 rounded-md">
+                            <h4 class="font-semibold text-red-800">납기 준수율 (주간)</h4>
+                            <p class="text-red-600">약속 대비 실제 출고율</p>
+                        </div>
+                        <div class="p-4 bg-red-100 rounded-md">
+                            <h4 class="font-semibold text-red-800">안전재고 확보율 (A)</h4>
+                            <p class="text-red-600">핵심 부품 3대분 이상 재고 달성</p>
+                        </div>
+                        
+                        <!-- 법무/특허 KPI (리스크 B, C) -->
+                        <div class="p-4 bg-orange-100 rounded-md">
+                            <h4 class="font-semibold text-orange-800">명의 통일 완료 여부 (B)</h4>
+                            <p class="text-orange-600">계산서/청구 명의 '택배클럽' 통일</p>
+                        </div>
+                        <div class="p-4 bg-yellow-100 rounded-md">
+                            <h4 class="font-semibold text-yellow-800">특허 리스크 평가 완료 (C)</h4>
+                            <p class="text-yellow-600">변리사 1차 침해 의견 확보 (Yes/No)</p>
+                        </div>
+
+                        <!-- 운영/CS KPI (리스크 E) -->
+                        <div class="p-4 bg-gray-100 rounded-md">
+                            <h4 class="font-semibold text-gray-800">A/S 초기응답 (주간)</h4>
+                            <p class="text-gray-600">목표: 4시간 이내</p>
+                        </div>
+                        <div class="p-4 bg-gray-100 rounded-md">
+                            <h4 class="font-semibold text-gray-800">입고 검수 준수율 (E)</h4>
+                            <p class="text-gray-600">하남 물류센터 검수 체크리스트 준수율</p>
+                        </div>
+                        
+                        <!-- 영업/마케팅/정책 KPI (리스크 D, F) -->
+                        <div class="p-4 bg-blue-100 rounded-md">
+                            <h4 class="font-semibold text-blue-800">전환율 (월간)</h4>
+                            <p class="text-blue-600">리드 → 실제 계약</p>
+                        </div>
+                        <div class="p-4 bg-blue-100 rounded-md">
+                            <h4 class="font-semibold text-blue-800">정책/SOP 문서화 완료율 (D/F)</h4>
+                            <p class="text-blue-600">영업 통제 및 인센티브 SOP 확정률</p>
+                        </div>
+                        
+                        <!-- HR/조직 KPI (리스크 F - 광범위 지표) -->
+                        <div class="p-4 bg-indigo-100 rounded-md col-span-2">
+                            <h4 class="font-semibold text-indigo-800">영업 직원 이탈률 및 만족도 (HR 지표)</h4>
+                            <p class="text-indigo-600">경쟁력 있는 지원 체계 구축 후 모니터링</p>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="text-center p-6 border-t border-gray-200 mt-12">
+        <p class="text-sm text-gray-500">매치업 리스크 분석 보고서 | 내부 전달용</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            const formatCurrency = (value) => {
+                if (!value) return '0';
+                return (value / 10000).toLocaleString('ko-KR') + '만원';
+            };
+
+            const ctx = document.getElementById('priceMatchupChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['기본 가격', '예상 총비용 (필수옵션 포함)'],
+                    datasets: [
+                        {
+                            label: '택탑 (경쟁)',
+                            data: [7900000, 8680000],
+                            backgroundColor: 'rgb(156, 163, 175)', 
+                            borderColor: 'rgb(107, 114, 128)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: '당사 (택배클럽)',
+                            data: [9200000, 9550000],
+                            backgroundColor: 'rgb(59, 130, 246)', 
+                            borderColor: 'rgb(37, 99, 235)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'x', 
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '경쟁사 대비 가격 비교 (기본가 vs 총비용)',
+                            font: {
+                                size: 16,
+                                family: "'Noto Sans KR', sans-serif"
+                            }
+                        },
+                        legend: {
+                            position: 'bottom',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += formatCurrency(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value, index, values) {
+                                    return formatCurrency(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const tabButtonsContainer = document.getElementById('tab-buttons');
+            const tabContentContainer = document.getElementById('tab-content');
+            
+            tabButtonsContainer.addEventListener('click', function(e) {
+                const clickedButton = e.target.closest('button.tab-button');
+                if (!clickedButton) return;
+
+                const tabId = clickedButton.getAttribute('data-tab');
+                
+                tabButtonsContainer.querySelectorAll('button.tab-button').forEach(btn => {
+                    btn.classList.remove('tab-active');
+                });
+                clickedButton.classList.add('tab-active');
+
+                tabContentContainer.querySelectorAll('div.content-panel').forEach(panel => {
+                    if (panel.id === tabId) {
+                        panel.classList.add('active');
+                    } else {
+                        panel.classList.remove('active');
+                    }
+                });
+            });
+
+            const navLinks = document.querySelectorAll('a.nav-link');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = link.getAttribute('data-target');
+                    const targetElement = document.getElementById(targetId);
+                    if (targetElement) {
+                        window.scrollTo({
+                            top: targetElement.offsetTop - 80, 
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
