@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>포터 봉고 판매 대시보드 25년 9월까지  BY 정진관 </title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .chart-container { position: relative; height: 48vh; width: 100%; }
+        .mini-chart-container { position: relative; height: 240px; width: 100%; display:flex; align-items:center; justify-content:center; }
+        .doughnut-center-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            text-align: center;
+        }
+        .tab-active { background-color: #1e3a8a; color: white; box-shadow: 0 6px 18px rgba(30,58,138,0.15); }
+        .kpi-positive { color: #059669; }
+        .kpi-negative { color: #dc2626; }
+    </style>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800 p-6 md:p-10">
+
+    <header class="mb-6">
+        <h1 class="text-3xl font-extrabold text-primary-blue mb-1">📊 2025년9월 기준  포터 봉고 EV ST1 차량 판매 추이  대시보드  정진관 작성</h1>
+        <p class="text-sm text-gray-500">추후 업데이트는 시간될때 하도록 하겠습니다.  경기가 안좋네요.  기아 현대 할인해도 잘 안팔리네요..  힘내십쇼.</p>
+    </header>
+
+    <!-- KPI Cards -->
+    <section id="kpi-area" class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white p-4 rounded-lg shadow border-b-4 border-primary-600">
+            <div class="text-sm text-gray-500 font-semibold" id="kpi-title-1">금년 (2025) 총 판매 실적</div>
+            <div class="text-2xl font-extrabold text-primary-600 mt-2" id="kpi-current-ytd">0 대</div>
+            <div class="text-xs text-gray-500 mt-2">누적 (<span id="kpi-latest-month">9월</span>)</div>
+        </div>
+
+        <div class="bg-white p-4 rounded-lg shadow border-b-4 border-gray-400">
+            <div class="text-sm text-gray-500 font-semibold" id="kpi-title-2">전년 동기간 (2024) 판매 실적</div>
+            <div class="text-2xl font-extrabold text-gray-700 mt-2" id="kpi-prev-ytd">0 대</div>
+            <div class="text-xs text-gray-500 mt-2">동일 기간 (1~<span id="kpi-prev-month">9월</span>)</div>
+        </div>
+
+        <div class="bg-white p-4 rounded-lg shadow border-b-4 border-yellow-400">
+            <div class="text-sm text-gray-500 font-semibold" id="kpi-title-3">전년 (2024) 총 판매 실적</div>
+            <div class="text-2xl font-extrabold text-yellow-500 mt-2" id="kpi-full-prev-year">0 대</div>
+            <div class="text-xs text-gray-500 mt-2">1월 ~ 12월 합계</div>
+        </div>
+
+        <div class="bg-white p-4 rounded-lg shadow border-b-4 border-green-500">
+            <div class="text-sm text-gray-500 font-semibold" id="kpi-title-4">2025년 YTD 전년 전체 대비 부족분</div>
+            <div class="text-2xl font-extrabold mt-2" id="kpi-remaining-goal">0 대</div>
+            <div class="text-xs text-gray-500 mt-2">달성률: <span id="kpi-goal-percent">0.0%</span></div>
+        </div>
+    </section>
+
+    <!-- Filters -->
+    <section class="bg-white p-4 rounded-lg shadow mb-6">
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="text-sm font-semibold text-gray-600 mr-2">모델 필터:</div>
+            <button data-model="All" class="filter-tab px-4 py-2 rounded-lg text-sm font-medium tab-active">전체 통합</button>
+            <button data-model="Porter" class="filter-tab px-4 py-2 rounded-lg text-sm font-medium">포터 (ICE)</button>
+            <button data-model="Bongo" class="filter-tab px-4 py-2 rounded-lg text-sm font-medium">봉고 (ICE)</button>
+            <button data-model="Porter_EV_ST1" class="filter-tab px-4 py-2 rounded-lg text-sm font-medium">포터 (EV+ST1)</button>
+            <button data-model="Bongo_EV" class="filter-tab px-4 py-2 rounded-lg text-sm font-medium">봉고 (EV)</button>
+        </div>
+    </section>
+
+    <!-- Charts -->
+    <main class="grid grid-cols-1 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-bold mb-3" id="trend-chart-title">📈 월별 판매 추이  (연도별클릭)</h2>
+            <div class="chart-container">
+                <canvas id="monthlyTrendChart"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-bold mb-3">🍩 연료타입 구성비 (ICE / EV / ST1)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="text-center">
+                    <h3 class="font-semibold text-gray-600 mb-2">통합 4년 (2022~2025 YTD)</h3>
+                    <div class="mini-chart-container mx-auto max-w-xs">
+                        <canvas id="compositionChartTotal"></canvas>
+                        <div class="doughnut-center-text">
+                            <div id="total-chart-center-val" class="text-lg font-bold">0%</div>
+                            <div class="text-xs text-gray-500">EV + ST1</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <h3 class="font-semibold text-gray-600 mb-2">2024년 전체 (1~12월)</h3>
+                    <div class="mini-chart-container mx-auto max-w-xs">
+                        <canvas id="compositionChart2024"></canvas>
+                        <div class="doughnut-center-text">
+                            <div id="2024-chart-center-val" class="text-lg font-bold">0%</div>
+                            <div class="text-xs text-gray-500">EV + ST1</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <h3 class="font-semibold text-gray-600 mb-2">2025년 누계 (1~9월)</h3>
+                    <div class="mini-chart-container mx-auto max-w-xs">
+                        <canvas id="compositionChart2025"></canvas>
+                        <div class="doughnut-center-text">
+                            <div id="2025-chart-center-val" class="text-lg font-bold">0%</div>
+                            <div class="text-xs text-gray-500">EV + ST1</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Historical table -->
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-bold mb-3">📜 연도별 총 판매량 (전체 모델 통합)</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">연도</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">ICE/LPG</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">EV</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">ST1</th>
+                            <th class="px-4 py-3 text-right text-xs font-bold text-white bg-primary-600 uppercase">총 합계</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historical-sales-body" class="bg-white divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+    // ---------- 설정 ----------
+    const TREND_YEARS = [2022, 2023, 2024, 2025];
+    const LATEST_YEAR = 2025;
+    const LATEST_MONTH = 9; // 데이터 제공 기준: 2025년 9월까지
+    const monthLabels = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+
+    // ---------- 원본 데이터 (rawData) - 사용자가 제공한 표를 JS 배열로 변환한 것 ----------
+    // 빈칸 또는 "-"는 null/''로 들어왔으므로 아래에서 숫자로 변환(없으면 0)
+    const rawData = [
+        /* 봉고 2022 ICE */
+        { year:2022, month:1, model:"봉고", fuel:"ICE", value:4643 },
+        { year:2022, month:2, model:"봉고", fuel:"ICE", value:6377 },
+        { year:2022, month:3, model:"봉고", fuel:"ICE", value:4649 },
+        { year:2022, month:4, model:"봉고", fuel:"ICE", value:6528 },
+        { year:2022, month:5, model:"봉고", fuel:"ICE", value:5741 },
+        { year:2022, month:6, model:"봉고", fuel:"ICE", value:4480 },
+        { year:2022, month:7, model:"봉고", fuel:"ICE", value:6642 },
+        { year:2022, month:8, model:"봉고", fuel:"ICE", value:5553 },
+        { year:2022, month:9, model:"봉고", fuel:"ICE", value:5578 },
+        { year:2022, month:10, model:"봉고", fuel:"ICE", value:6123 },
+        { year:2022, month:11, model:"봉고", fuel:"ICE", value:6272 },
+        { year:2022, month:12, model:"봉고", fuel:"ICE", value:4486 },
+
+        /* 봉고 2023 ICE */
+        { year:2023, month:1, model:"봉고", fuel:"ICE", value:3626 },
+        { year:2023, month:2, model:"봉고", fuel:"ICE", value:4041 },
+        { year:2023, month:3, model:"봉고", fuel:"ICE", value:4902 },
+        { year:2023, month:4, model:"봉고", fuel:"ICE", value:4349 },
+        { year:2023, month:5, model:"봉고", fuel:"ICE", value:4194 },
+        { year:2023, month:6, model:"봉고", fuel:"ICE", value:3545 },
+        { year:2023, month:7, model:"봉고", fuel:"ICE", value:4171 },
+        { year:2023, month:8, model:"봉고", fuel:"ICE", value:3391 },
+        { year:2023, month:9, model:"봉고", fuel:"ICE", value:4061 },
+        { year:2023, month:10, model:"봉고", fuel:"ICE", value:4183 },
+        { year:2023, month:11, model:"봉고", fuel:"ICE", value:5512 },
+        { year:2023, month:12, model:"봉고", fuel:"ICE", value:3958 },
+
+        /* 봉고 2023 EV */
+        { year:2023, month:1, model:"봉고", fuel:"EV", value:29 },
+        { year:2023, month:2, model:"봉고", fuel:"EV", value:5025 },
+        { year:2023, month:3, model:"봉고", fuel:"EV", value:2016 },
+        { year:2023, month:4, model:"봉고", fuel:"EV", value:1137 },
+        { year:2023, month:5, model:"봉고", fuel:"EV", value:1164 },
+        { year:2023, month:6, model:"봉고", fuel:"EV", value:1026 },
+        { year:2023, month:7, model:"봉고", fuel:"EV", value:1577 },
+        { year:2023, month:8, model:"봉고", fuel:"EV", value:610 },
+        { year:2023, month:9, model:"봉고", fuel:"EV", value:706 },
+        { year:2023, month:10, model:"봉고", fuel:"EV", value:998 },
+        { year:2023, month:11, model:"봉고", fuel:"EV", value:643 },
+        { year:2023, month:12, model:"봉고", fuel:"EV", value:221 },
+
+        /* 봉고 2024 ICE */
+        { year:2024, month:1, model:"봉고", fuel:"ICE", value:3130 },
+        { year:2024, month:2, model:"봉고", fuel:"ICE", value:2957 },
+        { year:2024, month:3, model:"봉고", fuel:"ICE", value:3510 },
+        { year:2024, month:4, model:"봉고", fuel:"ICE", value:3980 },
+        { year:2024, month:5, model:"봉고", fuel:"ICE", value:3588 },
+        { year:2024, month:6, model:"봉고", fuel:"ICE", value:3365 },
+        { year:2024, month:7, model:"봉고", fuel:"ICE", value:3148 },
+        { year:2024, month:8, model:"봉고", fuel:"ICE", value:2782 },
+        { year:2024, month:9, model:"봉고", fuel:"ICE", value:2272 },
+        { year:2024, month:10, model:"봉고", fuel:"ICE", value:2954 },
+        { year:2024, month:11, model:"봉고", fuel:"ICE", value:2158 },
+        { year:2024, month:12, model:"봉고", fuel:"ICE", value:2243 },
+
+        /* 봉고 2024 EV */
+        { year:2024, month:1, model:"봉고", fuel:"EV", value:19 },
+        { year:2024, month:2, model:"봉고", fuel:"EV", value:180 },
+        { year:2024, month:3, model:"봉고", fuel:"EV", value:1180 },
+        { year:2024, month:4, model:"봉고", fuel:"EV", value:550 },
+        { year:2024, month:5, model:"봉고", fuel:"EV", value:462 },
+        { year:2024, month:6, model:"봉고", fuel:"EV", value:439 },
+        { year:2024, month:7, model:"봉고", fuel:"EV", value:567 },
+        { year:2024, month:8, model:"봉고", fuel:"EV", value:382 },
+        { year:2024, month:9, model:"봉고", fuel:"EV", value:443 },
+        { year:2024, month:10, model:"봉고", fuel:"EV", value:614 },
+        { year:2024, month:11, model:"봉고", fuel:"EV", value:925 },
+        { year:2024, month:12, model:"봉고", fuel:"EV", value:255 },
+
+        /* 봉고 2025 ICE */
+        { year:2025, month:1, model:"봉고", fuel:"ICE", value:2428 },
+        { year:2025, month:2, model:"봉고", fuel:"ICE", value:2755 },
+        { year:2025, month:3, model:"봉고", fuel:"ICE", value:2922 },
+        { year:2025, month:4, model:"봉고", fuel:"ICE", value:3043 },
+        { year:2025, month:5, model:"봉고", fuel:"ICE", value:2491 },
+        { year:2025, month:6, model:"봉고", fuel:"ICE", value:2575 },
+        { year:2025, month:7, model:"봉고", fuel:"ICE", value:2952 },
+        { year:2025, month:8, model:"봉고", fuel:"ICE", value:2698 },
+        { year:2025, month:9, model:"봉고", fuel:"ICE", value:2728 },
+
+        /* 봉고 2025 EV */
+        { year:2025, month:1, model:"봉고", fuel:"EV", value:0 }, // 입력에 "-" 있어서 0으로 처리
+        { year:2025, month:2, model:"봉고", fuel:"EV", value:569 },
+        { year:2025, month:3, model:"봉고", fuel:"EV", value:596 },
+        { year:2025, month:4, model:"봉고", fuel:"EV", value:340 },
+        { year:2025, month:5, model:"봉고", fuel:"EV", value:260 },
+        { year:2025, month:6, model:"봉고", fuel:"EV", value:252 },
+        { year:2025, month:7, model:"봉고", fuel:"EV", value:684 },
+        { year:2025, month:8, model:"봉고", fuel:"EV", value:644 },
+        { year:2025, month:9, model:"봉고", fuel:"EV", value:500 },
+
+        /* 포터 2022 ICE */
+        { year:2022, month:1, model:"포터", fuel:"ICE", value:5443 },
+        { year:2022, month:2, model:"포터", fuel:"ICE", value:7995 },
+        { year:2022, month:3, model:"포터", fuel:"ICE", value:4708 },
+        { year:2022, month:4, model:"포터", fuel:"ICE", value:8423 },
+        { year:2022, month:5, model:"포터", fuel:"ICE", value:8299 },
+        { year:2022, month:6, model:"포터", fuel:"ICE", value:6980 },
+        { year:2022, month:7, model:"포터", fuel:"ICE", value:8986 },
+        { year:2022, month:8, model:"포터", fuel:"ICE", value:7792 },
+        { year:2022, month:9, model:"포터", fuel:"ICE", value:8503 },
+        { year:2022, month:10, model:"포터", fuel:"ICE", value:9020 },
+        { year:2022, month:11, model:"포터", fuel:"ICE", value:7020 },
+        { year:2022, month:12, model:"포터", fuel:"ICE", value:9242 },
+
+        /* 포터 2023 ICE */
+        { year:2023, month:1, model:"포터", fuel:"ICE", value:6578 },
+        { year:2023, month:2, model:"포터", fuel:"ICE", value:6227 },
+        { year:2023, month:3, model:"포터", fuel:"ICE", value:7422 },
+        { year:2023, month:4, model:"포터", fuel:"ICE", value:6183 },
+        { year:2023, month:5, model:"포터", fuel:"ICE", value:5576 },
+        { year:2023, month:6, model:"포터", fuel:"ICE", value:5745 },
+        { year:2023, month:7, model:"포터", fuel:"ICE", value:5410 },
+        { year:2023, month:8, model:"포터", fuel:"ICE", value:4616 },
+        { year:2023, month:9, model:"포터", fuel:"ICE", value:4441 },
+        { year:2023, month:10, model:"포터", fuel:"ICE", value:6171 },
+        { year:2023, month:11, model:"포터", fuel:"ICE", value:7849 },
+        { year:2023, month:12, model:"포터", fuel:"ICE", value:5658 },
+
+        /* 포터 2023 EV */
+        { year:2023, month:1, model:"포터", fuel:"EV", value:13 },
+        { year:2023, month:2, model:"포터", fuel:"EV", value:4872 },
+        { year:2023, month:3, model:"포터", fuel:"EV", value:2860 },
+        { year:2023, month:4, model:"포터", fuel:"EV", value:2885 },
+        { year:2023, month:5, model:"포터", fuel:"EV", value:2485 },
+        { year:2023, month:6, model:"포터", fuel:"EV", value:2505 },
+        { year:2023, month:7, model:"포터", fuel:"EV", value:3260 },
+        { year:2023, month:8, model:"포터", fuel:"EV", value:1371 },
+        { year:2023, month:9, model:"포터", fuel:"EV", value:1340 },
+        { year:2023, month:10, model:"포터", fuel:"EV", value:2407 },
+        { year:2023, month:11, model:"포터", fuel:"EV", value:1406 },
+        { year:2023, month:12, model:"포터", fuel:"EV", value:395 },
+
+        /* 포터 2024 ICE */
+        { year:2024, month:1, model:"포터", fuel:"ICE", value:4923 },
+        { year:2024, month:2, model:"포터", fuel:"ICE", value:6093 },
+        { year:2024, month:3, model:"포터", fuel:"ICE", value:5257 },
+        { year:2024, month:4, model:"포터", fuel:"ICE", value:5748 },
+        { year:2024, month:5, model:"포터", fuel:"ICE", value:6193 },
+        { year:2024, month:6, model:"포터", fuel:"ICE", value:4867 },
+        { year:2024, month:7, model:"포터", fuel:"ICE", value:4145 },
+        { year:2024, month:8, model:"포터", fuel:"ICE", value:3962 },
+        { year:2024, month:9, model:"포터", fuel:"ICE", value:3517 },
+        { year:2024, month:10, model:"포터", fuel:"ICE", value:5509 },
+        { year:2024, month:11, model:"포터", fuel:"ICE", value:3414 },
+        { year:2024, month:12, model:"포터", fuel:"ICE", value:5111 },
+
+        /* 포터 2024 EV */
+        { year:2024, month:1, model:"포터", fuel:"EV", value:4 },
+        { year:2024, month:2, model:"포터", fuel:"EV", value:262 },
+        { year:2024, month:3, model:"포터", fuel:"EV", value:2775 },
+        { year:2024, month:4, model:"포터", fuel:"EV", value:695 },
+        { year:2024, month:5, model:"포터", fuel:"EV", value:796 },
+        { year:2024, month:6, model:"포터", fuel:"EV", value:948 },
+        { year:2024, month:7, model:"포터", fuel:"EV", value:1032 },
+        { year:2024, month:8, model:"포터", fuel:"EV", value:1208 },
+        { year:2024, month:9, model:"포터", fuel:"EV", value:940 },
+        { year:2024, month:10, model:"포터", fuel:"EV", value:273 },
+        { year:2024, month:11, model:"포터", fuel:"EV", value:1268 },
+        { year:2024, month:12, model:"포터", fuel:"EV", value:327 },
+
+        /* 포터 2024 ST1 */
+        { year:2024, month:1, model:"포터", fuel:"ST1", value:0 },
+        { year:2024, month:2, model:"포터", fuel:"ST1", value:0 },
+        { year:2024, month:3, model:"포터", fuel:"ST1", value:0 },
+        { year:2024, month:4, model:"포터", fuel:"ST1", value:0 },
+        { year:2024, month:5, model:"포터", fuel:"ST1", value:24 },
+        { year:2024, month:6, model:"포터", fuel:"ST1", value:175 },
+        { year:2024, month:7, model:"포터", fuel:"ST1", value:194 },
+        { year:2024, month:8, model:"포터", fuel:"ST1", value:183 },
+        { year:2024, month:9, model:"포터", fuel:"ST1", value:102 },
+        { year:2024, month:10, model:"포터", fuel:"ST1", value:88 },
+        { year:2024, month:11, model:"포터", fuel:"ST1", value:173 },
+        { year:2024, month:12, model:"포터", fuel:"ST1", value:49 },
+
+        /* 포터 2025 ICE */
+        { year:2025, month:1, model:"포터", fuel:"ICE", value:3329 },
+        { year:2025, month:2, model:"포터", fuel:"ICE", value:3637 },
+        { year:2025, month:3, model:"포터", fuel:"ICE", value:4667 },
+        { year:2025, month:4, model:"포터", fuel:"ICE", value:4291 },
+        { year:2025, month:5, model:"포터", fuel:"ICE", value:3720 },
+        { year:2025, month:6, model:"포터", fuel:"ICE", value:3692 },
+        { year:2025, month:7, model:"포터", fuel:"ICE", value:3368 },
+        { year:2025, month:8, model:"포터", fuel:"ICE", value:4253 },
+        { year:2025, month:9, model:"포터", fuel:"ICE", value:4322 },
+
+        /* 포터 2025 EV */
+        { year:2025, month:1, model:"포터", fuel:"EV", value:6 },
+        { year:2025, month:2, model:"포터", fuel:"EV", value:1532 },
+        { year:2025, month:3, model:"포터", fuel:"EV", value:986 },
+        { year:2025, month:4, model:"포터", fuel:"EV", value:1081 },
+        { year:2025, month:5, model:"포터", fuel:"EV", value:778 },
+        { year:2025, month:6, model:"포터", fuel:"EV", value:660 },
+        { year:2025, month:7, model:"포터", fuel:"EV", value:928 },
+        { year:2025, month:8, model:"포터", fuel:"EV", value:1294 },
+        { year:2025, month:9, model:"포터", fuel:"EV", value:1003 },
+
+        /* 포터 2025 ST1 */
+        { year:2025, month:1, model:"포터", fuel:"ST1", value:7 },
+        { year:2025, month:2, model:"포터", fuel:"ST1", value:201 },
+        { year:2025, month:3, model:"포터", fuel:"ST1", value:109 },
+        { year:2025, month:4, model:"포터", fuel:"ST1", value:115 },
+        { year:2025, month:5, model:"포터", fuel:"ST1", value:114 },
+        { year:2025, month:6, model:"포터", fuel:"ST1", value:77 },
+        { year:2025, month:7, model:"포터", fuel:"ST1", value:127 },
+        { year:2025, month:8, model:"포터", fuel:"ST1", value:201 },
+        { year:2025, month:9, model:"포터", fuel:"ST1", value:310 }
+    ];
+
+    // ---------- 데이터 전처리 및 집계 헬퍼 ----------
+    // 내부 조회 편의용 map 생성: dataMap[year][month][model][fuel] = value
+    function buildDataMap(dataArray) {
+        const map = {};
+        for (const r of dataArray) {
+            const y = r.year, m = r.month, model = r.model, fuel = r.fuel;
+            if (!map[y]) map[y] = {};
+            if (!map[y][m]) map[y][m] = {};
+            if (!map[y][m][model]) map[y][m][model] = {};
+            const val = (r.value === null || r.value === '' || isNaN(r.value)) ? 0 : Number(r.value);
+            map[y][m][model][fuel] = val;
+        }
+        return map;
+    }
+
+    const dataMap = buildDataMap(rawData);
+
+    // 월별(또는 기간) 집계: 옵션 modelFilter: 'All','Porter','Bongo','Porter_EV_ST1','Bongo_EV'
+    function getAggregatedSales(year, month, modelFilter='All') {
+        const sales = { ICE:0, EV:0, ST1:0, TOTAL:0 };
+        const monthData = (dataMap[year] && dataMap[year][month]) ? dataMap[year][month] : null;
+        if (!monthData) return sales;
+
+        for (const modelKey of Object.keys(monthData)) {
+            const fuels = monthData[modelKey];
+            switch(modelFilter) {
+                case 'All':
+                    sales.ICE += (fuels.ICE || 0);
+                    sales.EV  += (fuels.EV  || 0);
+                    sales.ST1 += (fuels.ST1 || 0);
+                    break;
+                case 'Porter':
+                    if (modelKey === '포터') sales.ICE += (fuels.ICE || 0);
+                    break;
+                case 'Bongo':
+                    if (modelKey === '봉고') sales.ICE += (fuels.ICE || 0);
+                    break;
+                case 'Porter_EV_ST1':
+                    if (modelKey === '포터') {
+                        sales.EV += (fuels.EV || 0);
+                        sales.ST1 += (fuels.ST1 || 0);
+                    }
+                    break;
+                case 'Bongo_EV':
+                    if (modelKey === '봉고') sales.EV += (fuels.EV || 0);
+                    break;
+                default:
+                    // fallback all
+                    sales.ICE += (fuels.ICE || 0);
+                    sales.EV  += (fuels.EV  || 0);
+                    sales.ST1 += (fuels.ST1 || 0);
+            }
+        }
+        sales.TOTAL = sales.ICE + sales.EV + sales.ST1;
+        return sales;
+    }
+
+    // 주어진 기간(연도,월 범위)의 합계 구하기
+    function getPeriodSales(startYear, endYear, startMonth=1, endMonth=12, modelFilter='All') {
+        let total = { ICE:0, EV:0, ST1:0, TOTAL:0 };
+        for (let y = startYear; y <= endYear; y++) {
+            const sm = (y === startYear) ? startMonth : 1;
+            const em = (y === endYear) ? endMonth : 12;
+            for (let m = sm; m <= em; m++) {
+                const s = getAggregatedSales(y,m,modelFilter);
+                total.ICE += s.ICE;
+                total.EV  += s.EV;
+                total.ST1 += s.ST1;
+                total.TOTAL += s.TOTAL;
+            }
+        }
+        return total;
+    }
+
+    // 차트용 데이터 및 KPI 계산
+    function getChartData(modelFilter='All') {
+        const dataByYear = {};
+        let currentYTDTotal = 0;
+        let prevYTDTotal = 0;
+        let fullPrevYearTotal = 0;
+
+        for (const year of TREND_YEARS) {
+            const maxMonth = (year === LATEST_YEAR) ? LATEST_MONTH : 12;
+            dataByYear[year] = [];
+
+            for (let m=1; m<=12; m++) {
+                const s = getAggregatedSales(year, m, modelFilter);
+
+                // 그래프 표시: 최신연도(LATEST_YEAR)에서 LATEST_MONTH 이후는 null로 처리
+                if (year === LATEST_YEAR && m > LATEST_MONTH) {
+                    dataByYear[year].push(null);
+                } else {
+                    dataByYear[year].push(s.TOTAL);
+                }
+
+                if (year === LATEST_YEAR && m <= LATEST_MONTH) currentYTDTotal += s.TOTAL;
+                if (year === LATEST_YEAR-1) {
+                    // prevYTD: 전년도 동일기간 (1~LATEST_MONTH)
+                    if (m <= LATEST_MONTH) prevYTDTotal += s.TOTAL;
+                    // fullPrevYear: 전년도 전체(1~12)
+                    fullPrevYearTotal += s.TOTAL;
+                }
+            }
+        }
+
+        return {
+            dataByYear,
+            currentYTDTotal,
+            prevYTDTotal,
+            fullPrevYearTotal
+        };
+    }
+
+    // ---------- 차트 렌더링 ----------
+    let trendChart, compositionChartTotal, compositionChart2024, compositionChart2025;
+
+    function renderTrendChart(data, modelFilter) {
+        const ctx = document.getElementById('monthlyTrendChart').getContext('2d');
+        if (trendChart) trendChart.destroy();
+
+        const colors = {
+            2022: '#a3a3a3',
+            2023: '#f59e0b',
+            2024: '#10b981',
+            2025: '#1e3a8a'
+        };
+
+        const datasets = TREND_YEARS.map(year => ({
+            label: `${year}년 총 판매`,
+            data: data.dataByYear[year],
+            borderColor: colors[year],
+            backgroundColor: 'transparent',
+            fill: false,
+            tension: 0.3,
+            borderWidth: (year === LATEST_YEAR) ? 3 : 2,
+            pointRadius: 4,
+            spanGaps: true,
+            hidden: year < 2024 // 초기에는 2022/2023 숨김
+        }));
+
+        trendChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: monthLabels, datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                const v = ctx.parsed.y;
+                                return ctx.dataset.label + ': ' + (v === null ? '-' : v.toLocaleString() + '대');
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: { beginAtZero:true, title: { display:true, text:'판매량 (대)' } }
+                }
+            }
+        });
+    }
+
+    function createDoughnut(ctxId, salesData, centerId) {
+        const ctx = document.getElementById(ctxId).getContext('2d');
+
+        // destroy if exists
+        let chartRef = null;
+        if (ctxId === 'compositionChartTotal' && compositionChartTotal) { compositionChartTotal.destroy(); compositionChartTotal = null; }
+        if (ctxId === 'compositionChart2024' && compositionChart2024) { compositionChart2024.destroy(); compositionChart2024 = null; }
+        if (ctxId === 'compositionChart2025' && compositionChart2025) { compositionChart2025.destroy(); compositionChart2025 = null; }
+
+        const total = salesData.TOTAL || 0;
+        const evst1Share = total > 0 ? ((salesData.EV + salesData.ST1) / total * 100).toFixed(1) : '0.0';
+        document.getElementById(centerId).textContent = `${evst1Share}%`;
+
+        const cfg = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['ICE/LPG','EV','ST1'],
+                datasets: [{
+                    data: [salesData.ICE||0, salesData.EV||0, salesData.ST1||0],
+                    backgroundColor: ['#3b82f6','#10b981','#f59e0b'],
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const v = context.parsed;
+                                const pct = total>0 ? (v/total*100).toFixed(1) : '0.0';
+                                return `${context.label}: ${v.toLocaleString()}대 (${pct}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (ctxId === 'compositionChartTotal') compositionChartTotal = cfg;
+        if (ctxId === 'compositionChart2024') compositionChart2024 = cfg;
+        if (ctxId === 'compositionChart2025') compositionChart2025 = cfg;
+    }
+
+    // ---------- KPI 업데이트 ----------
+    function updateKPIs(data, modelFilter) {
+        const currentYTD = data.currentYTDTotal;
+        const prevYTD = data.prevYTDTotal;
+        const fullPrevYear = data.fullPrevYearTotal;
+
+        // titles
+        const labelMap = {
+            'All':'통합 모델',
+            'Porter':'포터 ICE',
+            'Bongo':'봉고 ICE',
+            'Porter_EV_ST1':'포터 EV+ST1',
+            'Bongo_EV':'봉고 EV'
+        };
+        const modelLabel = labelMap[modelFilter] || '통합 모델';
+        document.getElementById('kpi-title-1').textContent = `${modelLabel} 금년 (${LATEST_YEAR}) 총 판매 실적`;
+        document.getElementById('kpi-title-2').textContent = `${modelLabel} 전년 동기간 (${LATEST_YEAR-1}) 판매 실적`;
+        document.getElementById('kpi-title-3').textContent = `${modelLabel} 전년 (${LATEST_YEAR-1}) 전체 판매 실적`;
+        document.getElementById('kpi-title-4').textContent = `${modelLabel} ${LATEST_YEAR}년 YTD 전년 전체 대비 부족분`;
+
+        // values
+        document.getElementById('kpi-current-ytd').textContent = `${currentYTD.toLocaleString()} 대`;
+        document.getElementById('kpi-prev-ytd').textContent = `${prevYTD.toLocaleString()} 대`;
+        document.getElementById('kpi-full-prev-year').textContent = `${fullPrevYear.toLocaleString()} 대`;
+
+        // shortfall
+        const shortfall = fullPrevYear - currentYTD;
+        const shortEl = document.getElementById('kpi-remaining-goal');
+        shortEl.classList.remove('kpi-positive','kpi-negative');
+        if (shortfall > 0) {
+            shortEl.textContent = `${shortfall.toLocaleString()} 대 부족`;
+            shortEl.classList.add('kpi-negative');
+        } else {
+            shortEl.textContent = `전년 전체 대비 ${Math.abs(shortfall).toLocaleString()} 대 초과`;
+            shortEl.classList.add('kpi-positive');
+        }
+        const achRate = fullPrevYear > 0 ? (currentYTD / fullPrevYear * 100).toFixed(1) : '0.0';
+        document.getElementById('kpi-goal-percent').textContent = `${achRate}%`;
+        document.getElementById('kpi-latest-month').textContent = `${LATEST_MONTH}월`;
+        document.getElementById('kpi-prev-month').textContent = `${LATEST_MONTH}월`;
+    }
+
+    // ---------- Historical Table 렌더링 ----------
+    function renderHistoricalTable() {
+        const tbody = document.getElementById('historical-sales-body');
+        tbody.innerHTML = '';
+        // render 2024, 2023, 2022 in reverse order
+        const yearsToShow = TREND_YEARS.slice(0, TREND_YEARS.length-1).reverse();
+        for (const y of yearsToShow) {
+            const totals = getPeriodSales(y, y, 1, 12, 'All');
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-gray-50';
+            tr.innerHTML = `
+                <td class="px-4 py-3 text-sm font-medium text-gray-900">${y}년</td>
+                <td class="px-4 py-3 text-sm text-gray-700 text-right">${totals.ICE.toLocaleString()} 대</td>
+                <td class="px-4 py-3 text-sm text-gray-700 text-right">${totals.EV.toLocaleString()} 대</td>
+                <td class="px-4 py-3 text-sm text-gray-700 text-right">${totals.ST1.toLocaleString()} 대</td>
+                <td class="px-4 py-3 text-sm font-bold text-white bg-primary-600 text-right">${totals.TOTAL.toLocaleString()} 대</td>
+            `;
+            tbody.appendChild(tr);
+        }
+    }
+
+    // ---------- 전체 업데이트 호출 ----------
+    function updateDashboard(modelFilter='All') {
+        const data = getChartData(modelFilter);
+        renderTrendChart(data, modelFilter);
+        updateKPIs(data, modelFilter);
+
+        // composition charts use 'All' (macro view)
+        const total4yr = getPeriodSales(TREND_YEARS[0], LATEST_YEAR, 1, LATEST_MONTH, 'All');
+        const total2024 = getPeriodSales(2024, 2024, 1, 12, 'All');
+        const total2025YTD = getPeriodSales(2025, 2025, 1, LATEST_MONTH, 'All');
+        createDoughnut('compositionChartTotal', total4yr, 'total-chart-center-val');
+        createDoughnut('compositionChart2024', total2024, '2024-chart-center-val');
+        createDoughnut('compositionChart2025', total2025YTD, '2025-chart-center-val');
+
+        renderHistoricalTable();
+    }
+
+    // ---------- 초기화 및 이벤트 바인딩 ----------
+    document.addEventListener('DOMContentLoaded', () => {
+        // Filter tabs
+        document.querySelectorAll('.filter-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('tab-active'));
+                e.currentTarget.classList.add('tab-active');
+                const model = e.currentTarget.getAttribute('data-model');
+                updateDashboard(model);
+            });
+        });
+
+        // initial render
+        updateDashboard('All');
+    });
+
+    // 유틸: 외부에서 특정 연도/월/모델 값 확인용 (디버그)
+    window.__debug = { dataMap, getAggregatedSales, getPeriodSales, getChartData };
+
+    </script>
+</body>
+</html>
