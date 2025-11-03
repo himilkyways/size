@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>연도별 판매 실적 대시보드</title>
+<!-- Chart.js v4.4.3: 차트 라이브러리 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<style>
+  body{font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",Roboto,Helvetica,Arial,sans-serif;background:#f4f7fb;margin:0;padding:0}
+  header{background:#1652f0;color:#fff;padding:14px 20px;font-weight:700}
+  .container{max-width:1200px;margin:28px auto;padding:0 18px}
+  .loader{display:flex;gap:12px;align-items:center;color:#334155}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:14px 0}
+  .card{background:#fff;padding:14px;border-radius:10px;box-shadow:0 6px 18px rgba(16,24,40,0.06)}
+  #chartWrap{background:#fff;padding:18px;border-radius:10px;box-shadow:0 6px 18px rgba(16,24,40,0.06);margin-top:16px}
+  .controls{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-bottom:10px; flex-wrap: wrap;}
+  select,button{padding:8px 10px;border-radius:8px;border:1px solid #d1d5db;background:#fff; cursor: pointer;}
+  select:hover, button:hover { border-color: #1652f0; }
+  #refreshBtn { background-color: #1652f0; color: white; border-color: #1652f0; }
+  .status{color:#6b7280;font-size:14px}
+  .small{font-size:13px;color:#6b7280}
+  table{width:100%;border-collapse:collapse;font-size:14px;}
+  th,td{padding:10px;border-bottom:1px solid #eef2ff;text-align:right}
+  th{background-color: #f8fafc; font-weight: 600; color: #334155; border-top: 1px solid #eef2ff;}
+  th:first-child,td:first-child{text-align:left}
+  .legendDot{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:8px}
+</style>
+</head>
+<body>
+<header>📊 연도별 판매 실적 자동 대시보드</header>
+<div class="container">
+  <div id="top" class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center; flex-wrap: wrap; gap: 10px;">
+      <div>
+        <div style="font-weight:700;font-size:18px">포터·봉고 모델 월별 판매량 (연도별)</div>
+        <div class="small">구글 시트에 데이터만 업데이트하면 대시보드가 자동 갱신됩니다.</div>
+      </div>
+      <div style="text-align:right">
+        <div id="status" class="status">데이터 불러오는 중...</div>
+        <div class="small">자동 새로고침: <span id="autoInterval">60</span>s</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="kpis" id="kpiSection">
+    <!-- KPI 카드 동적 삽입 -->
+  </div>
+
+  <div class="card">
+    <div class="controls">
+      <label class="small">연도 선택</label>
+      <select id="yearFilter"><option value="All">전체 연도</option></select>
+
+      <label class="small">연료</label>
+      <select id="fuelFilter"><option value="All">전체</option></select>
+
+      <button id="refreshBtn">지금 새로고침</button>
+      <button id="toggleAuto">자동 ON</button>
+    </div>
+
+    <div id="chartWrap">
+      <!-- 차트의 높이를 조금 더 확보했습니다. -->
+      <canvas id="salesChart" height="150"></canvas>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div style="font-weight:700;margin-bottom:8px">데이터 테이블 (연도-월 · 모델 · 연료 · 판매량)</div>
+    <div style="overflow:auto;max-height:360px">
+      <table id="dataTable">
+        <thead>
+          <tr><th>연도-월</th><th>모델</th><th>연료</th><th>판매량</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // 설정
+  // **주의: 이 URL은 고객님께서 제공하신 예시 URL입니다.**
+  const SHEET_URL = "https://docs.google.com/spreadsheets/d/1K3cudjOZ_kTujuGe_jRaMbJUkWj7a9kiym_IVPLX94I/gviz/tq?tqx=out:json";
+  const AUTO_REFRESH_SECONDS = 60; // 자동 새로고침 초
+  let autoTimer = null;
+  let autoOn = true;
+  let rawRows = []; // 원시 데이터
+  let SALES = {};   // { year: { month: { "모델": { "연료": value } } } }
+  let chartInstance = null;
+
+  // DOM 요소 캐싱
+  const $status = document.getElementById('status');
+  const $yearFilter = document.getElementById('yearFilter');
+  const $fuelFilter = document.getElementById('fuelFilter');
+  const $refreshBtn = document.getElementById('refreshBtn');
+  const $toggleAuto = document.getElementById('toggleAuto');
+  const $kpiSection = document.getElementById('kpiSection');
+  const $dataTableBody = document.querySelector('#dataTable tbody');
+  const $autoIntervalLabel = document.getElementById('autoInterval');
+
+  $autoIntervalLabel.textContent = AUTO_REFRESH_SECONDS;
+
+  // 안전한 JSON 추출 함수 (gviz 응답에서 내부 JSON 뽑기)
+  function extractJsonFromGviz(text) {
+    // 구글 gviz 형식: google.visualization.Query.setResponse({...});
+    const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?/);
+    if (!match) throw new Error('gviz 포맷 미발견');
+    return JSON.parse(match[1]);
+  }
+
+  // 데이터 불러오기
+  async function fetchSheet() {
+    $status.textContent = '구글 시트에서 데이터 로드 중...';
+    // 기존 타이머 정지
+    stopAuto();
+    try {
+      // no-store를 사용하여 캐시 방지 및 최신 데이터 로드
+      const res = await fetch(SHEET_URL, {cache: "no-store"});
+      const txt = await res.text();
+
+      // 추출 및 파싱
+      let json;
+      try {
+        json = extractJsonFromGviz(txt);
+      } catch (e) {
+        console.error('GViz 파싱 실패 - 응답 앞부분(200자):', txt.slice(0,200));
+        throw new Error('데이터 응답 파싱 실패');
+      }
+
+      const rows = json.table.rows || [];
+      const parsedHeaders = json.table.parsedNumHeaders || 0;
+
+      rawRows = rows.slice(parsedHeaders); // 헤더 스킵
+      $status.textContent = `원시 레코드 ${rawRows.length}건 로드 완료`;
+
+      buildSalesStructure(rawRows);
+      populateFilters();
+      renderAll();
+      
+    } catch (err) {
+      console.error('데이터 로드 실패', err);
+      $status.textContent = '데이터 로드 실패 - 콘솔 확인';
+    } finally {
+      // 성공/실패와 상관없이 자동 새로고침 재시작 (autoOn 상태인 경우)
+      if (autoOn) startAuto();
+    }
+  }
+
+  // SALES 구조 생성: { year: { month: { "모델": { "연료": value } } } }
+  function buildSalesStructure(rows) {
+    SALES = {};
+    rows.forEach(r => {
+      // r.c 배열: [연도, 모델, 연료구분, 월, 판매량] (시트 순서에 따라 다름)
+      // 시트 컬럼 순서 (A, B, C, D, E)
+      const c = r.c || [];
+      const year = c[0]?.v;    // A열
+      const model = c[1]?.v;  // B열
+      const fuel = c[2]?.v;    // C열
+      const month = c[3]?.v;  // D열 (숫자)
+      const sales = (typeof c[4]?.v === 'number') ? c[4].v : (c[4]?.v ? Number(c[4].v) : null); // E열 (숫자)
+
+      // 유효치만 처리 (연도, 월, 모델, 연료가 모두 존재해야 유의미)
+      if (year == null || month == null || model == null || fuel == null) return;
+
+      if (!SALES[year]) SALES[year] = {};
+      if (!SALES[year][month]) SALES[year][month] = {};
+      if (!SALES[year][month][model]) SALES[year][month][model] = {};
+      SALES[year][month][model][fuel] = (sales == null) ? null : sales; // sales는 이미 숫자로 변환됨
+    });
+  }
+
+  // 필터 셀렉트 채우기
+  function populateFilters() {
+    // 연도 필터
+    const years = Object.keys(SALES).sort().reverse(); // 최신 연도부터 보이도록 역순 정렬
+    $yearFilter.innerHTML = '<option value="All">전체 연도</option>';
+    years.forEach(y => {
+      const o = document.createElement('option'); o.value = y; o.textContent = `${y}년`; $yearFilter.appendChild(o);
+    });
+
+    // 연료 필터
+    const fuels = new Set();
+    rawRows.forEach(r => {
+      const f = r.c?.[2]?.v; // 연료(C열)
+      if (f != null) fuels.add(f);
+    });
+    $fuelFilter.innerHTML = '<option value="All">전체</option>';
+    Array.from(fuels).sort().forEach(f => {
+      const o = document.createElement('option'); o.value = f; o.textContent = f; $fuelFilter.appendChild(o);
+    });
+  }
+
+  // 차트용 데이터 집계 (모델+연료 조합 별로 라인 생성)
+  function buildChartDatasets(selectedYear, selectedFuel) {
+    // 1. 라벨(연도-월) 고정: 모든 연도월 조합을 오름차순으로 수집
+    const labelSet = new Set();
+    Object.keys(SALES).sort().forEach(y => {
+      Object.keys(SALES[y]).sort((a,b)=>Number(a)-Number(b)).forEach(m => {
+        // 필터링된 연도만 차트 x축에 표시
+        if (selectedYear === 'All' || String(y) === String(selectedYear)) {
+          labelSet.add(`${y}-${String(m).padStart(2,'0')}`);
+        }
+      });
+    });
+    const labels = Array.from(labelSet).sort();
+
+
+    // 2. 조합 키 및 데이터 포인트 수집
+    const combos = {}; // "모델|연료" => [판매량1, 판매량2, ...]
+    
+    Object.keys(SALES).sort().forEach(y => {
+      Object.keys(SALES[y]).sort((a,b)=>Number(a)-Number(b)).forEach(m => {
+        const lm = `${y}-${String(m).padStart(2,'0')}`;
+
+        // 현재 연월이 선택된 라벨에 포함되어야 함
+        if (!labels.includes(lm)) return;
+        const idx = labels.indexOf(lm); // 라벨에서 해당 월의 인덱스
+
+        Object.keys(SALES[y][m]).forEach(model => {
+          Object.keys(SALES[y][m][model]).forEach(fuel => {
+            // 연료 필터 적용
+            if (selectedFuel !== 'All' && fuel !== selectedFuel) return;
+            
+            const key = `${model}|${fuel}`;
+            if (!combos[key]) combos[key] = Array(labels.length).fill(null);
+            
+            const salesValue = SALES[y][m][model][fuel];
+            // null 값 대신 0을 사용하여 차트가 끊어지지 않게 할 수 있으나, 
+            // 원본 코드의 의도대로 null을 유지하여 'spanGaps: true'에 의존합니다.
+            combos[key][idx] = salesValue; 
+          });
+        });
+      });
+    });
+
+    // 3. datasets 생성 (색은 HSL로 자동 배정)
+    const keys = Object.keys(combos).sort();
+    const datasets = keys.map((k,i) => {
+      const [model,fuel] = k.split('|');
+      // HSL 색상으로 라인마다 다른 색을 부여
+      const hue = (i * 73) % 360; 
+      const color = `hsl(${hue} 81% 45%)`;
+      
+      return {
+        label: `${model} (${fuel})`,
+        data: combos[k],
+        borderColor: color,
+        backgroundColor: `hsl(${hue} 81% 45% / 0.12)`, // 채우기 색상
+        spanGaps: true, // 데이터가 없어도 라인을 이어서 그림
+        tension: 0.25, // 부드러운 곡선
+        pointRadius: 3,
+        borderWidth: 2
+      };
+    });
+
+    return { labels, datasets };
+  }
+
+  // KPI 렌더링: 상위 3개 모델(선택 필터 기준) 표시
+  function renderKPIs(selectedYear, selectedFuel) {
+    // 집계: "모델 (연료)" -> 총 판매량
+    const totals = {}; 
+    Object.keys(SALES).forEach(y => {
+      if (selectedYear !== 'All' && String(y) !== String(selectedYear)) return;
+      Object.keys(SALES[y]).forEach(m => {
+        Object.keys(SALES[y][m]).forEach(model => {
+          Object.keys(SALES[y][m][model]).forEach(fuel => {
+            if (selectedFuel !== 'All' && fuel !== selectedFuel) return;
+            const v = SALES[y][m][model][fuel];
+            if (v == null) return;
+            const key = `${model} (${fuel})`;
+            totals[key] = (totals[key] || 0) + v;
+          });
+        });
+      });
+    });
+
+    // 상위 3개 항목 추출
+    const entries = Object.entries(totals).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    $kpiSection.innerHTML = '';
+    
+    // 전체 합산 KPI 추가 (Top 3 앞에)
+    const overallTotal = Object.values(totals).reduce((sum, current) => sum + current, 0);
+    if (overallTotal > 0 || entries.length > 0) {
+      const totalCard = document.createElement('div');
+      totalCard.className = 'card';
+      totalCard.innerHTML = `<div style="font-size:13px;color:#1652f0; font-weight: 700;">총 판매량 (${selectedYear === 'All' ? '전체 기간' : selectedYear+'년'})</div>
+                             <div style="font-weight:700;font-size:24px;margin-top:4px">${overallTotal.toLocaleString()}대</div>`;
+      $kpiSection.appendChild(totalCard);
+    }
+
+    if (entries.length === 0) {
+      // 전체 합산 KPI는 위에서 추가했으므로, Top 3가 없을 경우만 추가 메시지 표시
+      if (overallTotal === 0) {
+        $kpiSection.innerHTML = '<div class="card" style="grid-column: 1 / -1;">표시할 KPI 데이터가 없습니다. 필터를 확인해 주세요.</div>';
+      }
+      return;
+    }
+
+    // Top 3 KPI 카드 추가
+    entries.forEach(([label,val])=>{
+      const div = document.createElement('div');
+      div.className = 'card';
+      div.innerHTML = `<div style="font-size:13px;color:#6b7280">${label} (Top 모델)</div>
+                       <div style="font-weight:700;font-size:20px;margin-top:6px">${val.toLocaleString()}대</div>`;
+      $kpiSection.appendChild(div);
+    });
+  }
+
+  // 테이블 렌더
+  function renderTable(selectedYear, selectedFuel) {
+    $dataTableBody.innerHTML = '';
+    const rows = [];
+    // 데이터 추출 및 필터링
+    Object.keys(SALES).forEach(y=>{
+      if (selectedYear !== 'All' && String(y)!==String(selectedYear)) return;
+      Object.keys(SALES[y]).forEach(m=>{
+        Object.keys(SALES[y][m]).forEach(model=>{
+          Object.keys(SALES[y][m][model]).forEach(fuel=>{
+            if (selectedFuel !== 'All' && fuel !== selectedFuel) return;
+            const sales = SALES[y][m][model][fuel];
+            rows.push({ ym: `${y}-${String(m).padStart(2,'0')}`, model, fuel, sales });
+          });
+        });
+      });
+    });
+
+    // 정렬: 연도-월 asc, 모델 asc
+    rows.sort((a,b) => a.ym.localeCompare(b.ym) || a.model.localeCompare(b.model));
+
+    // 테이블 행 생성
+    rows.forEach(r=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${r.ym}</td><td style="text-align:left">${r.model}</td><td>${r.fuel}</td><td>${r.sales == null ? '-' : r.sales.toLocaleString()}</td>`;
+      $dataTableBody.appendChild(tr);
+    });
+  }
+
+  // 전체 렌더
+  function renderAll() {
+    const selectedYear = $yearFilter.value;
+    const selectedFuel = $fuelFilter.value;
+
+    // 차트 데이터 준비
+    const { labels, datasets } = buildChartDatasets(selectedYear, selectedFuel);
+
+    // 차트 렌더/업데이트
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    if (chartInstance) chartInstance.destroy(); // 기존 차트 파괴
+    chartInstance = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false,
+        },
+        plugins: { 
+          legend: { position: 'top' },
+          tooltip: { 
+            callbacks: {
+              label: function(context) {
+                let label = context.dataset.label || '';
+                if (label) { label += ': '; }
+                if (context.parsed.y !== null) {
+                  label += context.parsed.y.toLocaleString() + ' 대';
+                }
+                return label;
+              }
+            }
+          }
+        },
+        scales: {
+          y: { 
+            title: { display:true, text: '판매량 (대)' }, 
+            beginAtZero:true,
+            ticks: { callback: function(value) { return value.toLocaleString(); } } // Y축 레이블 쉼표 추가
+          },
+          x: { title: { display:true, text: '연도-월' } }
+        }
+      }
+    });
+
+    // KPI, Table 렌더
+    renderKPIs(selectedYear, selectedFuel);
+    renderTable(selectedYear, selectedFuel);
+
+    $status.textContent = `최신 데이터 로드 완료 | 차트: ${datasets.length} 라인 · ${labels.length} 개월`;
+
+  }
+
+  // event 바인딩
+  $refreshBtn.addEventListener('click', () => fetchSheet());
+  $yearFilter.addEventListener('change', renderAll);
+  $fuelFilter.addEventListener('change', renderAll);
+  $toggleAuto.addEventListener('click', () => {
+    autoOn = !autoOn;
+    $toggleAuto.textContent = autoOn ? '자동 ON' : '자동 OFF';
+    if (autoOn) startAuto(); else stopAuto();
+    // 상태 저장 로직 추가 가능
+  });
+
+  // 자동 새로고침
+  function startAuto() {
+    stopAuto();
+    autoTimer = setInterval(() => {
+      console.log('자동 새로고침 시작...');
+      fetchSheet();
+    }, AUTO_REFRESH_SECONDS * 1000);
+  }
+  function stopAuto() { 
+    if (autoTimer) { 
+      clearInterval(autoTimer); 
+      autoTimer = null; 
+      console.log('자동 새로고침 정지.');
+    } 
+  }
+
+  // 초기 실행
+  // 페이지 로드 후 즉시 데이터 로드를 시작하고, 성공 시 자동 새로고침을 시작합니다.
+  document.addEventListener('DOMContentLoaded', () => {
+    // 초기 상태 설정
+    $toggleAuto.textContent = autoOn ? '자동 ON' : '자동 OFF';
+    fetchSheet();
+  });
+  
+})();
+</script>
+</body>
+</html>
