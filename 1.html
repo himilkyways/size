@@ -13,7 +13,21 @@
   .loader{display:flex;gap:12px;align-items:center;color:#334155}
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:14px 0}
   .card{background:#fff;padding:14px;border-radius:10px;box-shadow:0 6px 18px rgba(16,24,40,0.06)}
-  #chartWrap{background:#fff;padding:18px;border-radius:10px;box-shadow:0 6px 18px rgba(16,24,40,0.06);margin-top:16px}
+  /* <<<--- CSS 수정 부분: 차트 래퍼에 최대 높이 설정 --->>> */
+  #chartWrap{
+    background:#fff;
+    padding:18px;
+    border-radius:10px;
+    box-shadow:0 6px 18px rgba(16,24,40,0.06);
+    margin-top:16px;
+    /* 최대 높이를 400px로 제한하여 화면 확대 시 무한정 커지지 않도록 합니다. */
+    max-height: 400px; 
+    position: relative; /* 캔버스 height: 100%를 위해 추가 */
+  }
+  #salesChart {
+    height: 100%; /* 부모의 max-height를 따르도록 설정 */
+  }
+  /* <<<--- CSS 수정 부분 끝 --->>> */
   .controls{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-bottom:10px; flex-wrap: wrap;}
   select,button{padding:8px 10px;border-radius:8px;border:1px solid #d1d5db;background:#fff; cursor: pointer;}
   select:hover, button:hover { border-color: #1652f0; }
@@ -60,8 +74,8 @@
     </div>
 
     <div id="chartWrap">
-      <!-- 차트의 높이를 조금 더 확보했습니다. -->
-      <canvas id="salesChart" height="150"></canvas>
+      <!-- height="150" 속성을 제거하고 CSS에서 높이를 제어하도록 변경했습니다. -->
+      <canvas id="salesChart"></canvas>
     </div>
   </div>
 
@@ -75,6 +89,7 @@
         <tbody></tbody>
       </table>
     </div>
+    <div style="height: 10px;"></div>
   </div>
 </div>
 
@@ -227,8 +242,6 @@
             if (!combos[key]) combos[key] = Array(labels.length).fill(null);
             
             const salesValue = SALES[y][m][model][fuel];
-            // null 값 대신 0을 사용하여 차트가 끊어지지 않게 할 수 있으나, 
-            // 원본 코드의 의도대로 null을 유지하여 'spanGaps: true'에 의존합니다.
             combos[key][idx] = salesValue; 
           });
         });
@@ -354,7 +367,8 @@
       data: { labels, datasets },
       options: {
         responsive: true,
-        maintainAspectRatio: false,
+        // maintainAspectRatio: false가 기본값이지만 명시적으로 설정
+        maintainAspectRatio: false, 
         interaction: {
           mode: 'index',
           intersect: false,
@@ -426,6 +440,12 @@
     // 초기 상태 설정
     $toggleAuto.textContent = autoOn ? '자동 ON' : '자동 OFF';
     fetchSheet();
+    // 브라우저 크기 변경 시 차트 갱신 (선택 사항이나 반응성을 위해 추가)
+    window.addEventListener('resize', () => {
+        if (chartInstance) {
+            chartInstance.resize();
+        }
+    });
   });
   
 })();
