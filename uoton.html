@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>판매 실적 대시보드</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+  <header class="bg-blue-700 text-white p-4 text-center text-2xl font-bold shadow-md">
+    📊 연도별 판매 실적 대시보드
+  </header>
+
+  <main class="flex-grow container mx-auto p-6 space-y-8">
+    <div id="loading" class="flex justify-center items-center py-10">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600"></div>
+      <span class="ml-4 text-gray-600 font-medium">데이터 불러오는 중...</span>
+    </div>
+
+    <div id="dashboard" class="hidden space-y-8">
+      <!-- KPI 영역 -->
+      <section class="grid grid-cols-1 sm:grid-cols-3 gap-4" id="kpi-section"></section>
+
+      <!-- 필터 -->
+      <div class="flex justify-end">
+        <select id="yearFilter" class="border rounded-md p-2 text-sm shadow-sm">
+          <option value="All">전체 연도</option>
+        </select>
+      </div>
+
+      <!-- 차트 -->
+      <section class="bg-white rounded-2xl shadow-lg p-4">
+        <canvas id="salesChart" height="120"></canvas>
+      </section>
+    </div>
+  </main>
+
+  <footer class="bg-gray-800 text-gray-300 text-center text-sm p-3">
+    © 2025 판매 실적 자동 대시보드
+  </footer>
+
+  <script>
+    let SALES_DATA = {};
+
+    async function loadSheetData() {
+      const sheetUrl = "https://docs.google.com/spreadsheets/d/1K3cudjOZ_kTujuGe_jRaMbJUkWj7a9kiym_IVPLX94I/gviz/tq?tqx=out:json";
+      const res = await fetch(sheetUrl);
+      const text = await res.text();
+      const json = JSON.parse(text.substr(47).slice(0, -2));
+      const rows = json.table.rows;
+      const data = {};
+
+      rows.forEach(r => {
+        const year = r.c[0]?.v;
+        const model = r.c[1]?.v;
+        const fuel = r.c[2]?.v;
+        const month = r.c[3]?.v;
+        const sales = Number(r.c[4]?.v || 0);
+
+        if (!data[year]) data[year] = {};
+        if (!data[year][month]) data[year][month] = {};
+        data[year][month][`${model} (${fuel})`] = sales;
+      });
+
+      return data;
+    }
+
+    function getMonthlyAggregatedSales(data, selectedYear) {
+      const monthlyTotals = Array(12).fill(0);
+      const targetYears = selectedYear === "All" ? Object.keys(data) : [selectedYear];
+
+      targetYears.forEach(y => {
+        if (!data[y]) return;
+        Object.keys(data[y]).forEach(m => {
+          const total = Object.values(data[y][m]).reduce((a, b) => a + b, 0);
+          monthlyTotals[m - 1] += total;
+        });
+      });
+      return monthlyTotals;
+    }
+
+    function updateKPI(data, selectedYear) {
+      const container = document.getElementById("kpi-section");
+      container.innerHTML = "";
+
+      const targetYears = selectedYear === "All" ? Object.keys(data) : [selectedYear];
+      let modelTotals = {};
+
+      targetYears.forEach(y => {
+        if (!data[y]) return;
+        Object.keys(data[y]).forEach(m => {
+          Object.entries(data[y][m]).forEach(([model, val]) => {
+            modelTotals[model] = (modelTotals[model] || 0) + val;
+          });
+        });
+      });
+
+      const topModels = Object.entries(modelTotals)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3);
+
+      topModels.forEach(([model, total]) => {
+        const card = document.createElement("div");
+        card.className = "bg-white p-4 rounded-2xl shadow flex flex-col items-center justify-center";
+        card.innerHTML = `
+          <h2 class="text-lg font-semibold text-gray-700">${model}</h2>
+          <p class="text-2xl font-bold text-blue-600 mt-2">${total.toLocaleString()}대</p>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function renderChart(data, selectedYear) {
+      const ctx = document.getElementById("salesChart").getContext("2d");
+      const monthlyTotals = getMonthlyAggregatedSales(data, selectedYear);
+
+      if (window.salesChart) window.salesChart.destroy();
+      window.salesChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: Array.from({ length: 12 }, (_, i) => `${i + 1}월`),
+          datasets: [
+            {
+              label: "월별 총판매량",
+              data: monthlyTotals,
+              backgroundColor: "rgba(59,130,246,0.6)",
+              borderRadius: 6,
+            },
+          ],
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } },
+        },
+      });
+    }
+
+    async function initDashboard() {
+      document.getElementById("loading").classList.remove("hidden");
+      SALES_DATA = await loadSheetData();
+      document.getElementById("loading").classList.add("hidden");
+      document.getElementById("dashboard").classList.remove("hidden");
+
+      const yearFilter = document.getElementById("yearFilter");
+      Object.keys(SALES_DATA).forEach(y => {
+        const opt = document.createElement("option");
+        opt.value = y;
+        opt.textContent = `${y}년`;
+        yearFilter.appendChild(opt);
+      });
+
+      updateKPI(SALES_DATA, "All");
+      renderChart(SALES_DATA, "All");
+
+      yearFilter.addEventListener("change", e => {
+        const selected = e.target.value;
+        updateKPI(SALES_DATA, selected);
+        renderChart(SALES_DATA, selected);
+      });
+    }
+
+    window.onload = initDashboard;
+  </script>
+</body>
+</html>
