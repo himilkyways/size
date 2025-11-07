@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>상승탑차 가격 인상 및 위기 진단 보고서 (2025년 11월)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f1f5f9; /* slate-100 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 1000px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px; /* h-96 */
+            max-height: 50vh;
+            padding: 1rem;
+            background-color: white;
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+        .nav-button {
+            transition: all 0.3s ease;
+        }
+        .nav-button.active {
+            background-color: #1d4ed8; /* blue-700 */
+            color: white;
+            box-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.1);
+        }
+        .nav-button:not(.active):hover {
+            background-color: #dbeafe; /* blue-100 */
+        }
+        [data-tab-content] {
+            display: none;
+        }
+        [data-tab-content].active {
+            display: block;
+        }
+        .accordion-content {
+            display: none;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .risk-critical { border-color: #dc2626; /* red-600 */ }
+        .risk-high { border-color: #f97316; /* orange-500 */ }
+        .risk-medium { border-color: #eab308; /* yellow-500 */ }
+    </style>
+</head>
+<body class="antialiased text-slate-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+
+        <!-- 1. COVER SECTION (Price Increase Summary and Table REINSTATED) -->
+        <section id="coverSection">
+            <header class="mb-6 p-6 bg-white rounded-xl shadow-lg">
+                <h1 class="text-3xl md:text-4xl font-extrabold text-center text-slate-900">상승탑차 가격 인상 관련 보고서</h1>
+                <p class="text-center text-slate-600 text-lg mt-2">2025년 11월 | 한국스마트탑 임원/주제</p>
+            </header>
+
+            <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold text-slate-800 mb-2">I. 가격 인상 요약 및 상세 내역</h2>
+                <p class="text-lg text-slate-700 mb-4">
+                    가격 인상(VAT 포함 990,000원)은 원가대응 및 외부 납품 시스템을 위한 임동근 대표님의 결정사항입니다.<br>
+                    <span class="font-bold text-blue-700">핵심 요약: 전 모델의 VAT 포함 인상액은 일괄적으로 990,000원으로 통일되었습니다.</span>
+                </p>
+                
+                <!-- PRICE TABLE REINSTATED HERE -->
+                <div class="overflow-x-auto border rounded-lg shadow-md">
+                    <table class="w-full min-w-[1200px] text-sm">
+                        <thead class="bg-slate-50 text-slate-600 uppercase">
+                            <tr>
+                                <th class="py-3 px-4 text-left">구분</th>
+                                <th class="py-3 px-4 text-left">상세 모델명</th>
+                                <th class="py-3 px-4 text-right">최초 가격 (C)</th>
+                                <th class="py-3 px-4 text-right">직전 가격 (A)</th>
+                                <th class="py-3 px-4 text-right font-bold text-blue-600">현재 가격 (B)</th>
+                                <th class="py-3 px-4 text-right font-bold text-blue-600">최근 인상액 (B-A)</th>
+                                <th class="py-3 px-4 text-right font-bold text-red-600">총 누적 인상액 (B-C)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200" id="coverTableBody">
+                            <!-- JS will populate this -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <button id="revealButton" class="w-full mt-8 bg-red-600 hover:bg-red-700 text-white font-extrabold py-4 px-6 rounded-xl shadow-xl transition duration-300 transform hover:scale-[1.01] text-xl text-center">
+                    💥 인상 배경 상세 진단 및 위기 대응 계획 보기
+                </button>
+            </div>
+        </section>
+
+        <!-- 2. DASHBOARD SECTION (Hidden) -->
+        <section id="dashboardSection" class="hidden">
+            <header class="mb-6 p-6 bg-white rounded-xl shadow-lg border-t-8 border-red-600">
+                <h1 class="text-3xl md:text-4xl font-extrabold text-center text-red-700">긴급 경영 위기 진단 대시보드</h1>
+                <p class="text-center text-slate-600 text-lg mt-2">가격 인상 배경의 4대 핵심 리스크 및 8주 생존 로드맵</p>
+            </header>
+            
+            <!-- Dashboard Navigation -->
+            <nav class="flex flex-wrap justify-center gap-2 md:gap-4 mb-8">
+                <button class="nav-button active w-full md:w-auto text-sm md:text-base font-medium py-3 px-5 rounded-full bg-white text-blue-900 shadow" data-target="tab-diagnosis">🚨 긴급 진단</button>
+                <button class="nav-button w-full md:w-auto text-sm md:text-base font-medium py-3 px-5 rounded-full bg-white text-blue-900 shadow" data-target="tab-pricing">📊 가격 분석</button>
+                <button class="nav-button w-full md:w-auto text-sm md:text-base font-medium py-3 px-5 rounded-full bg-white text-blue-900 shadow" data-target="tab-risks">🛠️ 6대 리스크 상세 계획</button>
+                <button class="nav-button w-full md:w-auto text-sm md:text-base font-medium py-3 px-5 rounded-full bg-white text-blue-900 shadow" data-target="tab-roadmap">🗺️ 8주 생존 로드맵</button>
+                <button class="nav-button w-full md:w-auto text-sm md:text-base font-medium py-3 px-5 rounded-full bg-white text-blue-900 shadow" data-target="tab-pricelist">💰 가격표 상세</button>
+            </nav>
+
+            <main>
+                <!-- Tab 1: Emergency Diagnosis (Default Active) -->
+                <div id="tab-diagnosis" data-tab-content class="active space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white p-6 rounded-xl shadow-lg border-l-8 border-red-600">
+                            <h3 class="text-sm font-medium text-slate-500 uppercase">TCO 경쟁력 (VS 택탑)</h3>
+                            <p class="text-5xl font-extrabold text-red-600 mt-2">-870,000원</p>
+                            <p class="text-slate-600 mt-2">당사 총소유비용(TCO)이 87만원 더 비쌈 (열세)</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-lg border-l-8 border-red-600">
+                            <h3 class="text-sm font-medium text-slate-500 uppercase">최우선 리스크 (KPI)</h3>
+                            <p class="text-3xl font-extrabold text-red-600 mt-2">고객 연락 제로</p>
+                            <p class="text-slate-600 mt-2">인상된 가격 대비 가치 전달 부재로 인한 영업 마비</p>
+                        </div>
+                        <!-- UPDATED PRICE KPI CARD -->
+                        <div class="bg-white p-6 rounded-xl shadow-lg border-l-8 border-blue-600">
+                            <h3 class="text-sm font-medium text-slate-500 uppercase">최근 일괄 인상액 (B-A)</h3>
+                            <p class="text-4xl font-extrabold text-blue-700 mt-1 mb-4">+990,000원</p>
+                            
+                            <h3 class="text-sm font-medium text-slate-500 uppercase">2025년 누적 총 인상액 (B-C)</h3>
+                            <p class="text-2xl font-bold text-red-600 mt-1 mb-1">+1,620,000원</p>
+                            <p class="text-xs text-slate-500">※ 대부분 모델 기준 (2회 인상분 포함)</p>
+                        </div>
+                        <!-- END UPDATED PRICE KPI CARD -->
+                    </div>
+                    
+                    <h3 class="text-2xl font-bold text-slate-800 pt-4">4대 핵심 붕괴 리스크 (존립 위협)</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-red-50 p-5 rounded-lg border-l-4 border-red-600 shadow-lg">
+                            <h4 class="text-xl font-bold text-red-800">1. 치명적 금융 실행 불가 리스크</h4>
+                            <p class="text-slate-700 mt-2">
+                                한국스마트탑 법인의 카드 연체, 세금/연금 미납으로 **'사고 법인'** 분류.
+                                <br><span class="font-bold">▶ 고객의 캐피탈 금융 자체가 실행 불가능한 영업 마비 상태.</span>
+                                <br>(복잡한 개인/법인 채무 3.8억+@)
+                            </p>
+                        </div>
+                        <div class="bg-red-50 p-5 rounded-lg border-l-4 border-red-600 shadow-lg">
+                            <h4 class="text-xl font-bold text-red-800">2. 계약금 50% 신뢰 붕괴 리스크</h4>
+                            <p class="text-slate-700 mt-2">
+                                고객에게 **계약금 50%**를 선납 받은 상태에서 납기 지연 + 금융 실행 불가 문제 발생.
+                                <br><span class="font-bold">▶ 즉각적인 계약 해지 및 법적 분쟁(환불 요구) 가능성 극도로 높음.</span>
+                            </p>
+                        </div>
+                        <div class="bg-orange-50 p-5 rounded-lg border-l-4 border-orange-500 shadow-lg">
+                            <h4 class="text-xl font-bold text-orange-800">3. 원가 구조 악화 리스크</h4>
+                            <p class="text-slate-700 mt-2">
+                                대금 지급 지연으로 거래선 신뢰 상실. **'입금 후 즉시 구매'** 방식 고착.
+                                <br><span class="font-bold">▶ 대량 구매를 통한 BOM 원가 절감이 불가능하고 생산 비효율성 고착화.</span>
+                            </p>
+                        </div>
+                        <div class="bg-orange-50 p-5 rounded-lg border-l-4 border-orange-500 shadow-lg">
+                            <h4 class="text-xl font-bold text-orange-800">4. 고객 심리 마지노선 붕괴</h4>
+                            <p class="text-slate-700 mt-2">
+                                TCO 87만원 열세 + 잦은 가격 인상 + **'살 사람만 사라'**는 방어적 영업 마인드 결합.
+                                <br><span class="font-bold">▶ 고객의 심리적 가격 마지노선 돌파로 구매 심리 완전 위축.</span> (쿠팡 등 이탈)
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Price Analysis -->
+                <div id="tab-pricing" data-tab-content class="space-y-6">
+                    <h3 class="text-2xl font-bold text-slate-800">가격 변동 및 경쟁사 TCO 비교</h3>
+                    <p class="text-slate-700">누적된 가격 인상폭보다 **경쟁사(택탑) 대비 총소유비용(TCO) 격차(-870,000원 열세)**에 집중해야 합니다.</p>
+                    <div class="chart-container">
+                        <canvas id="tcoCompareChart"></canvas>
+                    </div>
+                    <!-- 
+                        "주요 모델별 누적 가격 인상 추이" 그래프는 사용자 요청에 따라 삭제되었습니다.
+                    -->
+                </div>
+
+                <!-- Tab 3: 6-Risk Detail -->
+                <div id="tab-risks" data-tab-content class="space-y-4">
+                    <h3 class="text-2xl font-bold text-slate-800">6대 리스크 상세 실행 계획</h3>
+                    <p class="text-slate-700">각 리스크 항목을 클릭하여 상세 대응 방안을 확인하세요.</p>
+                    <div id="riskAccordion" class="space-y-3">
+                        <!-- JS will populate this -->
+                    </div>
+                </div>
+
+                <!-- Tab 4: 8-Week Roadmap -->
+                <div id="tab-roadmap" data-tab-content>
+                    <h3 class="text-2xl font-bold text-slate-800">8주 긴급 구조 조정 로드맵 (생존 집중)</h3>
+                    <p class="text-slate-700 mb-6">금융 및 생산 정상화를 위한 8주간의 핵심 실행 계획입니다.</p>
+                    <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg">
+                        <ol class="relative border-l border-slate-300 space-y-10" id="roadmapList">
+                            <!-- JS will populate this -->
+                        </ol>
+                    </div>
+                </div>
+                
+                <!-- Tab 5: Price List (FOR DETAILED TABLE VIEW IN DASHBOARD) -->
+                <div id="tab-pricelist" data-tab-content class="space-y-6">
+                    <h3 class="text-2xl font-bold text-slate-800">💰 상승탑차 최종 가격표 상세</h3>
+                    <p class="text-slate-700">전 모델 VAT 포함 990,000원 일괄 인상된 최종 확정 가격표입니다. (임동근 대표 정책)</p>
+                    <div class="overflow-x-auto border rounded-lg shadow-md">
+                        <table class="w-full min-w-[1200px] text-sm">
+                            <thead class="bg-slate-50 text-slate-600 uppercase">
+                                <tr>
+                                    <th class="py-3 px-4 text-left">구분</th>
+                                    <th class="py-3 px-4 text-left">상세 모델명</th>
+                                    <th class="py-3 px-4 text-right">최초 가격 (C)</th>
+                                    <th class="py-3 px-4 text-right">직전 가격 (A)</th>
+                                    <th class="py-3 px-4 text-right font-bold text-blue-600">현재 가격 (B)</th>
+                                    <th class="py-3 px-4 text-right font-bold text-blue-600">최근 인상액 (B-A)</th>
+                                    <th class="py-3 px-4 text-right font-bold text-red-600">총 누적 인상액 (B-C)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200" id="dashboardTableBody">
+                                <!-- JS will populate this -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </main>
+        </section>
+
+    </div>
+
+    <script>
+        // Data updated based on user's latest input
+        const reportData = {
+            pricing: [
+                { "group": "현대/기아 1톤", "model": "기본", "c": 8500000, "a": 9130000, "b": 10120000 },
+                { "group": "현대/기아 1톤", "model": "슈퍼-길이확장", "c": 10150000, "a": 10780000, "b": 11770000 },
+                { "group": "현대/기아 1톤", "model": "슈퍼-높이/길이확장", "c": 11800000, "a": 12430000, "b": 13420000 },
+                
+                // --- 최초 가격(C)이 없는 모델 ---
+                { "group": "기아 1.2톤", "model": "기본", "c": 0, "a": 13530000, "b": 14520000 }, 
+                
+                { "group": "축연장 모델", "model": "기본형", "c": 12570000, "a": 13200000, "b": 14190000 },
+                { "group": "축연장 모델", "model": "높이확장", "c": 14220000, "a": 14850000, "b": 15840000 },
+                
+                // --- 최초 가격(C)이 없는 모델 ---
+                { "group": "BYD T4K", "model": "기본형", "c": 0, "a": 9790000, "b": 10780000 },
+                { "group": "BYD T4K", "model": "길이확장형", "c": 0, "a": 11660000, "b": 12650000 },
+                { "group": "BYD T4K", "model": "높이확장형", "c": 0, "a": 11660000, "b": 12650000 },
+                { "group": "BYD T4K", "model": "길이/높이 확장형", "c": 0, "a": 13530000, "b": 14520000 }
+            ],
+            kpi: {
+                tco: { us: 9550000, competitor: 8680000, diff: 870000 }
+            },
+            risks: [
+                { 
+                    id: "riskA", 
+                    level: "critical",
+                    title: "A. 생산·납기 리스크 (우선순위 최상)", 
+                    plan: [
+                        "**목표: 납기 4주 이내 단축**",
+                        "확보된 긴급 자금으로 핵심 부품 3~6대분 안전재고 즉시 확보",
+                        "거래선 대금 지급 정상화로 '입금 후 구매' 시스템 해소",
+                        "하남 최신특장 협업을 통해 생산량 확보 및 납기일 4주 이내로 대외 제시"
+                    ]
+                },
+                { 
+                    id: "riskB", 
+                    level: "critical",
+                    title: "B. 재무/법인 구조 조정 (최우선 과제)", 
+                    plan: [
+                        "**목표: 금융 마비 해소, 고객 신뢰 회복 및 투명화**",
+                        "<span class='font-bold text-red-700'>투명화 배경: 박스탑/세미탑 등은 기존 당사의 리스크 관리 및 경기 상황 대응을 위해 개발되었던 상품이었음을 인지.</span>", // <- 추가된 내용
+                        "**즉시:** 신규 계약 및 계산서는 '택배클럽' 명의로만 진행하여 금융 실행 문제 우회",
+                        "**법적 정리:** 한국스마트탑 법인의 총체적 채무(개인/법인) 목록화 및 책임 주체 명확화",
+                        "**긴급 소통:** 50% 계약금 고객에게 투명한 상황 설명 및 납기 계획 공유",
+                        "**환불 유동성 확보:** 계약 해지 고객 발생 시 즉시 환불 가능한 자금 유동성 확보 계획"
+                    ]
+                },
+                { 
+                    id: "riskD", 
+                    level: "high",
+                    title: "D. 영업 마비 및 고객 접점 제로 리스크", 
+                    plan: [
+                        "**목표: 고객 연락 창구 복구 및 적극적 영업 재개**",
+                        "**영업 마인드셋 전환:** '살사람만 사라' 마인드를 버리고 '고가 판매의 책임감' 및 'TCO 논리'로 재교육",
+                        "<span class='text-red-600 font-extrabold'>즉각적인 영업 활성화: 새 가격 팜플렛/전단지 디자인 및 제작 즉시 완료</span>",
+                        "<span class='text-red-600 font-extrabold'>배포 전략: 주력 택배 허브 및 집단 운수 지역 대상 전단지 집중 배포를 1주차 내 실행</span>",
+                        "**객관적 자료 제작:** 870,000원 가격 차이가 빠른 납기, 안정적 품질, A/S로 상쇄됨을 입증하는 자료 배포",
+                        "**영업 지원 체계 구축:** 경쟁사 수준의 지원 방안 검토 및 예산 확보로 핵심 인력 이탈 방지"
+                    ]
+                },
+                {
+                    id: "riskC",
+                    level: "medium",
+                    title: "C. 특허·기술 리스크",
+                    plan: [
+                        "**목표: 법적 리스크 대비**",
+                        "변리사에게 경쟁사 특허 침해 가능성 1차 의견 의뢰",
+                        "회피 설계(2안) 도출하여 법적 리스크 대비",
+                        "영업 시 독점성 대신 '고가 자재 사용' 등 품질 우위로 설득"
+                    ]
+                }
+            ],
+            roadmap: [
+                { 
+                    week: "1주 차", 
+                    step: "CRISIS 선포 및 Triage", 
+                    tasks: [
+                        "긴급 운용자금 확보 및 대금 정상화 착수 (A/B)",
+                        "법인 구조 결정 및 채무 책임 주체 명확화 착수 (B)",
+                        "50% 계약금 고객 리스트 확보 및 소통 준비 (B)",
+                        "<span class='text-blue-700 font-bold'>신규 가격 반영 전단지/팜플렛 디자인 및 제작 즉시 발주</span> (D)"
+                    ]
+                },
+                { 
+                    week: "2주 차", 
+                    step: "금융/생산 기반 확보 및 영업 재개",
+                    tasks: [
+                        "명의 통일 및 '택배클럽' 중심 신규 계약 완전 전환 (B)",
+                        "핵심 자재 3대분 안전재고 확보 (A)",
+                        "<span class='text-blue-700 font-bold'>전단지 수령 및 주력 채널 배포 시작</span> (D)",
+                        "영업 지원 방안 긴급 확정 및 공지"
+                    ]
+                },
+                { 
+                    week: "3-4주 차", 
+                    step: "신뢰 회복 및 방어", 
+                    tasks: [
+                        "납기 목표 4주 이내 단축 시스템 가동 (A)",
+                        "지연 고객 보상 프로그램 시행 (A)",
+                        "특허 리스크(C) 1차 의견 확보",
+                        "계약금 조정/환불 유동성 계획 실행 (B)"
+                    ]
+                },
+                { 
+                    week: "5-8주 차", 
+                    step: "시스템 최적화", 
+                    tasks: [
+                        "자재 대금 정상 지급율 90% 이상 유지 (A/B)",
+                        "운영 리스크(E) 개선 (하남 검수 강화 및 예비 부품 재고 시스템 공식 적용)"
+                    ]
+                }
+            ]
+        };
+
+        const formatter = new Intl.NumberFormat('ko-KR');
+        function formatKRW(num) {
+            if (num === 0) return '-'; // 최초 가격이 없는 경우 '-' 표시
+            return formatter.format(num) + '원';
+        }
+
+        // Function to populate the price table (used for both cover and dashboard tabs)
+        function populatePriceTable(tableBodyId) {
+            const tableBody = document.getElementById(tableBodyId);
+            tableBody.innerHTML = ''; // Clear existing content
+            
+            reportData.pricing.forEach(item => {
+                const recentIncrease = item.b - item.a;
+                
+                let totalIncreaseText;
+                let totalIncreaseClass;
+                
+                if (item.c === 0) {
+                    // C=0일 경우: 총 누적 인상액 대신 '최근 인상액'만 표시
+                    totalIncreaseText = `<span class="text-slate-500 font-medium">+${formatKRW(recentIncrease)} (최근 인상액)</span>`;
+                    totalIncreaseClass = 'text-left'; // 텍스트 자체가 오른쪽 정렬이 아니므로 그냥 둠
+                } else {
+                    // C!=0일 경우: 누적 인상액 표시
+                    const totalIncrease = item.b - item.c;
+                    totalIncreaseText = `+${formatKRW(totalIncrease)}`;
+                    totalIncreaseClass = 'text-red-700 font-bold';
+                }
+
+                // 최초 가격(C)이 0일 때 '-'를 표시
+                const formattedC = item.c === 0 ? '<span class="text-slate-400">- (정보 없음)</span>' : formatKRW(item.c);
+
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-slate-50';
+                
+                row.innerHTML = `
+                    <td class="py-3 px-4 font-medium text-slate-900">${item.group}</td>
+                    <td class="py-3 px-4 text-slate-700">${item.model}</td>
+                    <td class="py-3 px-4 text-slate-500 text-right">${formattedC}</td>
+                    <td class="py-3 px-4 text-slate-500 text-right">${formatKRW(item.a)}</td>
+                    <td class="py-3 px-4 text-blue-700 font-bold text-right">${formatKRW(item.b)}</td>
+                    <td class="py-3 px-4 text-blue-700 font-bold text-right">+${formatKRW(recentIncrease)}</td>
+                    <td class="py-3 px-4 text-right ${totalIncreaseClass}">${totalIncreaseText}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Populate both tables
+            populatePriceTable('coverTableBody');
+            populatePriceTable('dashboardTableBody');
+
+
+            // Setup Section Toggle
+            const revealButton = document.getElementById('revealButton');
+            const coverSection = document.getElementById('coverSection');
+            const dashboardSection = document.getElementById('dashboardSection');
+
+            revealButton.addEventListener('click', () => {
+                // Hide the cover section (splash screen)
+                coverSection.style.display = 'none';
+                // Show the dashboard section
+                dashboardSection.classList.remove('hidden');
+                // Ensure charts are rendered/resized on reveal if necessary
+                window.dispatchEvent(new Event('resize'));
+            });
+
+
+            // Setup Dashboard Tabs
+            const navButtons = document.querySelectorAll('.nav-button');
+            const tabContents = document.querySelectorAll('[data-tab-content]');
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetId = button.dataset.target;
+                    
+                    navButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    
+                    tabContents.forEach(content => {
+                        content.classList.toggle('active', content.id === targetId);
+                    });
+                });
+            });
+
+            // Init Charts (Tab 2: Price Analysis)
+            const { us, competitor, diff } = reportData.kpi.tco;
+            new Chart(document.getElementById('tcoCompareChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: ['경쟁사 (택탑) TCO', '당사 (한국스마트탑) TCO'],
+                    datasets: [{
+                        label: '총소유비용 (원)',
+                        data: [competitor, us],
+                        backgroundColor: ['#34d399', '#ef4444'],
+                        borderColor: ['#059669', '#b91c1c'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: `TCO 비교: 당사가 ${formatKRW(diff)} 불리`, font: { size: 18 } },
+                        tooltip: { callbacks: { label: c => formatKRW(c.raw) } }
+                    },
+                    scales: { y: { ticks: { callback: v => (v / 10000) + '만원' } } }
+                }
+            });
+            
+            // NOTE: The price history chart initialization has been removed as per the user's request.
+            
+            // Init Accordion (Tab 3)
+            const accordion = document.getElementById('riskAccordion');
+            // Clear previous content before re-populating
+            accordion.innerHTML = ''; 
+
+            reportData.risks.forEach(risk => {
+                let levelClass = 'risk-medium';
+                if (risk.level === 'critical') levelClass = 'risk-critical';
+                if (risk.level === 'high') levelClass = 'risk-high';
+
+                const item = document.createElement('div');
+                item.className = 'bg-white rounded-lg shadow-md border';
+                item.innerHTML = `
+                    <button class="accordion-button flex justify-between items-center w-full p-5 text-left ${levelClass}">
+                        <span class="text-xl font-bold text-slate-800">${risk.title}</span>
+                        <svg class="w-6 h-6 transform shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="accordion-content px-5 pb-5">
+                        <ul class="list-disc list-inside space-y-2 text-slate-700 mt-4">
+                            ${risk.plan.map(p => `<li>${p}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+                accordion.appendChild(item);
+            });
+            
+            accordion.addEventListener('click', e => {
+                const button = e.target.closest('.accordion-button');
+                if (!button) return;
+
+                const content = button.nextElementSibling;
+                const icon = button.querySelector('svg');
+
+                if (content.style.display === 'block') {
+                    content.style.display = 'none';
+                    icon.style.transform = 'rotate(0deg)';
+                } else {
+                    // Close all others and open current
+                    document.querySelectorAll('.accordion-content').forEach(c => c.style.display = 'none');
+                    document.querySelectorAll('.accordion-button svg').forEach(i => i.style.transform = 'rotate(0deg)');
+                    
+                    content.style.display = 'block';
+                    icon.style.transform = 'rotate(180deg)';
+                }
+            });
+
+            // Init Roadmap (Tab 4)
+            const roadmapList = document.getElementById('roadmapList');
+            // Clear previous content before re-populating
+            roadmapList.innerHTML = ''; 
+
+            reportData.roadmap.forEach((step, index) => {
+                const item = document.createElement('li');
+                item.className = 'ml-6';
+                item.innerHTML = `
+                    <span class="absolute flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full -left-4 ring-8 ring-white">
+                        <span class="font-bold text-blue-800">${index + 1}</span>
+                    </span>
+                    <h4 class="flex items-center mb-1 text-lg font-semibold text-slate-900">
+                        ${step.step} <span class="bg-blue-100 text-blue-800 text-sm font-medium ml-3 px-2.5 py-0.5 rounded">${step.week}</span>
+                    </h4>
+                    <ul class="list-disc list-inside space-y-1 text-slate-700 ml-4">
+                        ${step.tasks.map(t => `<li>${t}</li>`).join('')}
+                    </ul>
+                `;
+                roadmapList.appendChild(item);
+            });
+        });
+    </script>
+</body>
+</html>
